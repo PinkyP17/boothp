@@ -1,15 +1,21 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, CARD_SHADOW } from '../constants/theme';
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
 
 export default function InventoryItemCard({ item, onPress, onRestock }) {
   const isOutOfStock = item.stock === 0;
 
   return (
-    <TouchableOpacity style={[styles.card, CARD_SHADOW]} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.card, CARD_SHADOW]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       {/* Top row: name + category badge */}
       <View style={styles.topRow}>
-        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {item.name}
+        </Text>
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryText}>{item.category}</Text>
         </View>
@@ -17,14 +23,25 @@ export default function InventoryItemCard({ item, onPress, onRestock }) {
 
       {/* Stock count */}
       <Text style={[styles.stock, isOutOfStock && styles.stockOut]}>
-        {isOutOfStock ? 'Out of Stock' : `${item.stock} in stock`}
+        {isOutOfStock ? "Out of Stock" : `${item.stock} in stock`}
       </Text>
 
       {/* Bottom row: cost/price + restock button */}
       <View style={styles.bottomRow}>
         <View style={styles.priceInfo}>
-          <Text style={styles.priceLabel}>Cost: <Text style={styles.priceValue}>${item.productionCost.toFixed(2)}</Text></Text>
-          <Text style={styles.priceLabel}>  Price: <Text style={styles.priceValue}>${item.sellingPrice.toFixed(2)}</Text></Text>
+          <Text style={styles.priceLabel}>
+            Cost:{" "}
+            <Text style={styles.priceValue}>
+              ${item.productionCost.toFixed(2)}
+            </Text>
+          </Text>
+          <Text style={styles.priceLabel}>
+            {" "}
+            Price:{" "}
+            <Text style={styles.priceValue}>
+              ${item.sellingPrice.toFixed(2)}
+            </Text>
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.restockButton}
@@ -33,7 +50,11 @@ export default function InventoryItemCard({ item, onPress, onRestock }) {
             onRestock();
           }}
         >
-          <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
+          <Ionicons
+            name="add-circle-outline"
+            size={16}
+            color={COLORS.primary}
+          />
           <Text style={styles.restockText}>Restock</Text>
         </TouchableOpacity>
       </View>
@@ -49,20 +70,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   name: {
     fontSize: SIZES.fontBody,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
     flex: 1,
     marginRight: 8,
   },
   categoryBadge: {
-    backgroundColor: COLORS.primary + '15',
+    backgroundColor: COLORS.primary + "15",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -70,11 +91,11 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     color: COLORS.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   stock: {
     fontSize: SIZES.fontSubtitle,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.textPrimary,
     marginBottom: 8,
   },
@@ -82,12 +103,12 @@ const styles = StyleSheet.create({
     color: COLORS.expense,
   },
   bottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   priceInfo: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   priceLabel: {
     fontSize: SIZES.fontCaption,
@@ -95,16 +116,16 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     color: COLORS.textPrimary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   restockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   restockText: {
     fontSize: SIZES.fontCaption,
     color: COLORS.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

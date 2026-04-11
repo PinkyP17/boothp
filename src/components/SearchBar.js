@@ -1,8 +1,12 @@
-import { StyleSheet, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, CARD_SHADOW } from '../constants/theme';
+import { StyleSheet, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
 
-export default function SearchBar({ value, onChangeText, placeholder = 'Search...' }) {
+export default function SearchBar({
+  value,
+  onChangeText,
+  placeholder = "Search...",
+}) {
   return (
     <View style={[styles.container, CARD_SHADOW]}>
       <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} />
@@ -19,8 +23,8 @@ export default function SearchBar({ value, onChangeText, placeholder = 'Search..
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     paddingHorizontal: 12,

@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SIZES } from '../constants/theme';
-import { dashboardStats, upcomingEvents } from '../data/mockData';
-import SummaryCard from '../components/SummaryCard';
-import EventCard from '../components/EventCard';
+import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS, SIZES } from "../constants/theme";
+import { dashboardStats, upcomingEvents } from "../data/mockData";
+import SummaryCard from "../components/SummaryCard";
+import EventCard from "../components/EventCard";
 
 export default function DashboardScreen() {
   const netProfit = dashboardStats.income - dashboardStats.expenses;
@@ -19,10 +19,23 @@ export default function DashboardScreen() {
 
         {/* Summary Cards */}
         <View style={styles.cardsRow}>
-          <SummaryCard title="Income" amount={dashboardStats.income} color={COLORS.income} />
-          <SummaryCard title="Expenses" amount={dashboardStats.expenses} color={COLORS.expense} />
+          <SummaryCard
+            title="Income"
+            amount={dashboardStats.income}
+            color={COLORS.income}
+          />
+          <SummaryCard
+            title="Expenses"
+            amount={dashboardStats.expenses}
+            color={COLORS.expense}
+          />
         </View>
-        <SummaryCard title="Net Profit" amount={netProfit} color={COLORS.profit} fullWidth />
+        <SummaryCard
+          title="Net Profit"
+          amount={netProfit}
+          color={COLORS.profit}
+          fullWidth
+        />
 
         {/* Upcoming Events */}
         <Text style={styles.sectionTitle}>Upcoming Events</Text>
@@ -51,7 +64,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: SIZES.fontTitle,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.textPrimary,
   },
   subtitle: {
@@ -60,12 +73,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   sectionTitle: {
     fontSize: SIZES.fontSubtitle,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
     marginTop: 12,
     marginBottom: 12,

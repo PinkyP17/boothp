@@ -1,13 +1,13 @@
-import { StyleSheet, View } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { StyleSheet, View } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "../constants/theme";
 
-import DashboardScreen from '../screens/DashboardScreen';
-import InventoryScreen from '../screens/InventoryScreen';
-import POSScreen from '../screens/POSScreen';
-import EventsScreen from '../screens/EventsScreen';
-import MoreScreen from '../screens/MoreScreen';
+import DashboardScreen from "../screens/DashboardScreen";
+import InventoryScreen from "../screens/InventoryScreen";
+import POSScreen from "../screens/POSScreen";
+import EventsScreen from "../screens/EventsScreen";
+import MoreScreen from "../screens/MoreScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -48,7 +48,7 @@ export default function TabNavigator() {
               <Ionicons name="cart-outline" size={size} color="#FFFFFF" />
             </View>
           ),
-          tabBarLabel: 'POS',
+          tabBarLabel: "POS",
         }}
       />
       <Tab.Screen
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: COLORS.tabBar,
     borderTopWidth: 0.5,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: "#E0E0E0",
     height: 60,
     paddingBottom: 6,
   },
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
 });

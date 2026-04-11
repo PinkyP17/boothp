@@ -1,5 +1,55 @@
 # Artist Booth Manager — App-Wide Design Decisions
 
+## Design Style
+
+### Principles
+- **Lightweight** — minimal dependencies, fast load, no heavy UI libraries
+- **Simple & readable** — clean layouts, clear typography, generous spacing
+- **Themeable** — support light/dark themes via centralized color constants
+
+### Styling Rules
+- Plain `StyleSheet` only — no UI libraries (NativeBase, Tamagui, etc.)
+- All colors come from `src/constants/theme.js` (`COLORS` object) — never hardcode colors in components
+- All sizing from `SIZES` object — consistent padding, border radius, font sizes
+- Card-based layouts with `CARD_SHADOW` for elevation
+- Icons from `@expo/vector-icons` (bundled with Expo Go)
+
+### Theming
+- Theme colors centralized in `COLORS` — swap this object to switch themes
+- Future: add a theme toggle in the More/Settings screen
+- Light theme is the default (matches app.json `userInterfaceStyle: "light"`)
+- When dark theme is added: replace `COLORS` values, keep the same keys
+
+### Typography
+- Title: 24px, bold (700)
+- Subtitle: 18px, semi-bold (600)
+- Body: 16px, regular
+- Caption: 13px, uppercase labels with letter spacing
+
+### Component Organization
+- **Shared/public components** stay in `src/components/` root (SearchBar, CategoryFilter, SummaryCard, etc.)
+- **Screen-specific components** go in subfolders: `src/components/event/`, `src/components/inventory/`, `src/components/pos/`
+- Rule: if a component is only used by one screen's feature, it goes in that screen's subfolder
+
+```
+src/components/
+  SearchBar.js            ← shared
+  CategoryFilter.js       ← shared
+  SummaryCard.js           ← shared
+  event/
+    EventTimelineCard.js
+    EventDetailModal.js
+    EventExpenseModal.js
+    EventModal.js
+  inventory/
+    InventoryItemCard.js
+    InventoryItemModal.js
+  pos/
+    ...
+```
+
+---
+
 ## Expense & Income Flow
 
 ### Income

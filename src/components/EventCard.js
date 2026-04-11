@@ -1,10 +1,22 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { COLORS, SIZES, CARD_SHADOW } from '../constants/theme';
+import { StyleSheet, Text, View } from "react-native";
+import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
 
 function formatDate(dateString) {
-  const [year, month, day] = dateString.split('-');
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const [year, month, day] = dateString.split("-");
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}, ${year}`;
 }
 
@@ -27,7 +39,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: SIZES.fontBody,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
     marginBottom: 4,
   },

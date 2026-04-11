@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,29 +9,35 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { COLORS, SIZES } from '../constants/theme';
-import { CATEGORIES } from '../data/mockData';
+} from "react-native";
+import { COLORS, SIZES } from "../../constants/theme";
+import { CATEGORIES } from "../../data/mockData";
 
-const editableCategories = CATEGORIES.filter((c) => c !== 'All');
+const editableCategories = CATEGORIES.filter((c) => c !== "All");
 
 const emptyForm = {
-  name: '',
-  category: 'Prints',
-  productionCost: '',
-  sellingPrice: '',
-  stock: '',
+  name: "",
+  category: "Prints",
+  productionCost: "",
+  sellingPrice: "",
+  stock: "",
 };
 
-export default function InventoryItemModal({ visible, onClose, onSave, item, mode }) {
+export default function InventoryItemModal({
+  visible,
+  onClose,
+  onSave,
+  item,
+  mode,
+}) {
   const [form, setForm] = useState(emptyForm);
-  const [restockQty, setRestockQty] = useState('');
-  const [restockCost, setRestockCost] = useState('');
+  const [restockQty, setRestockQty] = useState("");
+  const [restockCost, setRestockCost] = useState("");
 
   useEffect(() => {
-    if (mode === 'add') {
+    if (mode === "add") {
       setForm(emptyForm);
-    } else if (mode === 'edit' && item) {
+    } else if (mode === "edit" && item) {
       setForm({
         name: item.name,
         category: item.category,
@@ -39,17 +45,23 @@ export default function InventoryItemModal({ visible, onClose, onSave, item, mod
         sellingPrice: item.sellingPrice.toString(),
         stock: item.stock.toString(),
       });
-    } else if (mode === 'restock') {
-      setRestockQty('');
-      setRestockCost('');
+    } else if (mode === "restock") {
+      setRestockQty("");
+      setRestockCost("");
     }
   }, [visible, mode, item]);
 
-  const title = mode === 'add' ? 'Add Item' : mode === 'edit' ? 'Edit Item' : `Restock ${item?.name}`;
-  const saveLabel = mode === 'add' ? 'Add' : mode === 'edit' ? 'Save' : 'Restock';
+  const title =
+    mode === "add"
+      ? "Add Item"
+      : mode === "edit"
+        ? "Edit Item"
+        : `Restock ${item?.name}`;
+  const saveLabel =
+    mode === "add" ? "Add" : mode === "edit" ? "Save" : "Restock";
 
   const handleSave = () => {
-    if (mode === 'restock') {
+    if (mode === "restock") {
       const qty = parseInt(restockQty, 10);
       const cost = parseFloat(restockCost);
       if (!qty || qty <= 0) return;
@@ -72,15 +84,17 @@ export default function InventoryItemModal({ visible, onClose, onSave, item, mod
     <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.modal}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>{title}</Text>
 
-            {mode === 'restock' ? (
+            {mode === "restock" ? (
               <>
-                <Text style={styles.stockInfo}>Current stock: {item?.stock}</Text>
+                <Text style={styles.stockInfo}>
+                  Current stock: {item?.stock}
+                </Text>
 
                 <Text style={styles.label}>Quantity to Add</Text>
                 <TextInput
@@ -124,10 +138,19 @@ export default function InventoryItemModal({ visible, onClose, onSave, item, mod
                   {editableCategories.map((cat) => (
                     <TouchableOpacity
                       key={cat}
-                      style={[styles.categoryPill, form.category === cat && styles.categoryPillSelected]}
+                      style={[
+                        styles.categoryPill,
+                        form.category === cat && styles.categoryPillSelected,
+                      ]}
                       onPress={() => setForm({ ...form, category: cat })}
                     >
-                      <Text style={[styles.categoryPillText, form.category === cat && styles.categoryPillTextSelected]}>
+                      <Text
+                        style={[
+                          styles.categoryPillText,
+                          form.category === cat &&
+                            styles.categoryPillTextSelected,
+                        ]}
+                      >
                         {cat}
                       </Text>
                     </TouchableOpacity>
@@ -138,7 +161,9 @@ export default function InventoryItemModal({ visible, onClose, onSave, item, mod
                 <TextInput
                   style={styles.input}
                   value={form.productionCost}
-                  onChangeText={(text) => setForm({ ...form, productionCost: text })}
+                  onChangeText={(text) =>
+                    setForm({ ...form, productionCost: text })
+                  }
                   keyboardType="decimal-pad"
                   placeholder="0.00"
                   placeholderTextColor={COLORS.textSecondary}
@@ -148,7 +173,9 @@ export default function InventoryItemModal({ visible, onClose, onSave, item, mod
                 <TextInput
                   style={styles.input}
                   value={form.sellingPrice}
-                  onChangeText={(text) => setForm({ ...form, sellingPrice: text })}
+                  onChangeText={(text) =>
+                    setForm({ ...form, sellingPrice: text })
+                  }
                   keyboardType="decimal-pad"
                   placeholder="0.00"
                   placeholderTextColor={COLORS.textSecondary}
@@ -185,8 +212,8 @@ export default function InventoryItemModal({ visible, onClose, onSave, item, mod
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
   modal: {
     backgroundColor: COLORS.card,
@@ -195,11 +222,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZES.padding,
     paddingTop: 20,
     paddingBottom: 32,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
   title: {
     fontSize: SIZES.fontTitle,
-    fontWeight: '700',
+    fontWeight: "700",
     color: COLORS.textPrimary,
     marginBottom: 20,
   },
@@ -211,7 +238,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: SIZES.fontCaption,
     color: COLORS.textSecondary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
     marginTop: 12,
@@ -225,8 +252,8 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   categoryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   categoryPill: {
@@ -241,13 +268,13 @@ const styles = StyleSheet.create({
   categoryPillText: {
     fontSize: SIZES.fontCaption,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   categoryPillTextSelected: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   noteBox: {
-    backgroundColor: COLORS.primary + '10',
+    backgroundColor: COLORS.primary + "10",
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
@@ -258,7 +285,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 20,
   },
@@ -267,23 +294,23 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     backgroundColor: COLORS.background,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelText: {
     fontSize: SIZES.fontBody,
     color: COLORS.textSecondary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   saveButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
     backgroundColor: COLORS.primary,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveText: {
     fontSize: SIZES.fontBody,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });

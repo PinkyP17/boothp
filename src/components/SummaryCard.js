@@ -1,8 +1,15 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { COLORS, SIZES, CARD_SHADOW } from '../constants/theme';
+import { StyleSheet, Text, View } from "react-native";
+import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
 
-export default function SummaryCard({ title, amount, color, fullWidth, format = 'currency' }) {
-  const displayAmount = format === 'number' ? `${amount}` : `$${amount.toFixed(2)}`;
+export default function SummaryCard({
+  title,
+  amount,
+  color,
+  fullWidth,
+  format = "currency",
+}) {
+  const displayAmount =
+    format === "number" ? `${amount}` : `$${amount.toFixed(2)}`;
 
   return (
     <View style={[styles.card, CARD_SHADOW, fullWidth && styles.fullWidth]}>
@@ -17,21 +24,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
-    width: '48%',
+    width: "48%",
     marginBottom: 12,
   },
   fullWidth: {
-    width: '100%',
+    width: "100%",
   },
   title: {
     fontSize: SIZES.fontCaption,
     color: COLORS.textSecondary,
     marginBottom: 6,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   amount: {
     fontSize: SIZES.fontTitle,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });
