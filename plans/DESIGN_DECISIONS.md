@@ -45,7 +45,10 @@ src/components/
     InventoryItemCard.js
     InventoryItemModal.js
   pos/
-    ...
+    POSItemTile.js
+    CartBar.js
+    CartModal.js
+    PaymentModal.js
 ```
 
 ---

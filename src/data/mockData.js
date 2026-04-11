@@ -43,11 +43,6 @@ export const inventoryItems = [
   },
 ];
 
-export const dashboardStats = {
-  income: 2450.00,
-  expenses: 870.50,
-};
-
 export const EXPENSE_CATEGORIES = ['Booth Fee', 'Transportation', 'Food', 'Hotel', 'Supplies', 'Other'];
 
 export const EVENT_STATUSES = ['All', 'Upcoming', 'Active', 'Past'];
@@ -117,7 +112,3 @@ export const events = [
   },
 ];
 
-// Dashboard still uses this — derived from events
-export const upcomingEvents = events.filter((e) => e.status !== 'past');
-
-export const salesHistory = [];

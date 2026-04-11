@@ -9,7 +9,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../constants/theme";
-import { events as initialEvents, EVENT_STATUSES } from "../data/mockData";
+import { EVENT_STATUSES } from "../data/mockData";
+import { useAppState } from "../context/AppContext";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
@@ -19,23 +20,21 @@ import EventDetailModal from "../components/event/EventDetailModal";
 import EventExpenseModal from "../components/event/EventExpenseModal";
 
 export default function EventsScreen() {
-  const [events, setEvents] = useState(initialEvents);
+  const { state, dispatch } = useAppState();
+  const events = state.events;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
 
-  // Event add/edit modal
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventModalMode, setEventModalMode] = useState("add");
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Detail modal
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailEvent, setDetailEvent] = useState(null);
 
-  // Expense modal
   const [expenseModalVisible, setExpenseModalVisible] = useState(false);
 
-  // Filtering
   const filteredEvents = events
     .filter((event) => {
       const matchesStatus =
@@ -48,13 +47,11 @@ export default function EventsScreen() {
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Summary stats
   const totalExpenses = events.reduce(
     (sum, event) => sum + event.expenses.reduce((s, exp) => s + exp.amount, 0),
     0,
   );
 
-  // Handlers
   const openAddModal = () => {
     setSelectedEvent(null);
     setEventModalMode("add");
@@ -66,68 +63,49 @@ export default function EventsScreen() {
     setDetailModalVisible(true);
   };
 
+  // Sync detailEvent with context state
+  const getDetailEvent = () => {
+    if (!detailEvent) return null;
+    return events.find((e) => e.id === detailEvent.id) || detailEvent;
+  };
+
   const handleSaveEvent = (eventData) => {
     if (eventModalMode === "add") {
-      setEvents([...events, eventData]);
+      dispatch({ type: "ADD_EVENT", payload: eventData });
     } else {
-      setEvents(events.map((e) => (e.id === eventData.id ? eventData : e)));
-      // Update detail modal if it's showing this event
-      if (detailEvent?.id === eventData.id) {
-        setDetailEvent(eventData);
-      }
+      dispatch({ type: "UPDATE_EVENT", payload: eventData });
     }
   };
 
   const handleEditFromDetail = () => {
-    setSelectedEvent(detailEvent);
+    setSelectedEvent(getDetailEvent());
     setEventModalMode("edit");
     setDetailModalVisible(false);
     setEventModalVisible(true);
   };
 
   const handleAddExpense = (expense) => {
-    const updatedEvents = events.map((e) => {
-      if (e.id === detailEvent.id) {
-        return { ...e, expenses: [...e.expenses, expense] };
-      }
-      return e;
-    });
-    setEvents(updatedEvents);
-    setDetailEvent({
-      ...detailEvent,
-      expenses: [...detailEvent.expenses, expense],
+    dispatch({
+      type: "ADD_EVENT_EXPENSE",
+      payload: { eventId: detailEvent.id, expense },
     });
   };
 
   const handleDeleteExpense = (eventId, expenseId) => {
-    const updatedEvents = events.map((e) => {
-      if (e.id === eventId) {
-        return {
-          ...e,
-          expenses: e.expenses.filter((exp) => exp.id !== expenseId),
-        };
-      }
-      return e;
+    dispatch({
+      type: "DELETE_EVENT_EXPENSE",
+      payload: { eventId, expenseId },
     });
-    setEvents(updatedEvents);
-    if (detailEvent?.id === eventId) {
-      setDetailEvent({
-        ...detailEvent,
-        expenses: detailEvent.expenses.filter((exp) => exp.id !== expenseId),
-      });
-    }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Events</Text>
           <Text style={styles.subtitle}>{events.length} events</Text>
         </View>
 
-        {/* Summary Cards */}
         <View style={styles.cardsRow}>
           <SummaryCard
             title="Total Events"
@@ -142,7 +120,6 @@ export default function EventsScreen() {
           />
         </View>
 
-        {/* Search + Filter */}
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -154,7 +131,6 @@ export default function EventsScreen() {
           onSelect={setSelectedStatus}
         />
 
-        {/* Timeline List */}
         {filteredEvents.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
@@ -178,7 +154,6 @@ export default function EventsScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={openAddModal}
@@ -187,7 +162,6 @@ export default function EventsScreen() {
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Modals */}
       <EventModal
         visible={eventModalVisible}
         onClose={() => setEventModalVisible(false)}
@@ -199,7 +173,7 @@ export default function EventsScreen() {
       <EventDetailModal
         visible={detailModalVisible}
         onClose={() => setDetailModalVisible(false)}
-        event={detailEvent}
+        event={getDetailEvent()}
         onAddExpense={() => setExpenseModalVisible(true)}
         onDeleteExpense={handleDeleteExpense}
         onEdit={handleEditFromDetail}

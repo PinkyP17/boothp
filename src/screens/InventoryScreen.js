@@ -9,7 +9,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../constants/theme";
-import { inventoryItems as initialItems, CATEGORIES } from "../data/mockData";
+import { CATEGORIES } from "../data/mockData";
+import { useAppState } from "../context/AppContext";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
@@ -17,14 +18,15 @@ import InventoryItemCard from "../components/inventory/InventoryItemCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
 
 export default function InventoryScreen() {
-  const [items, setItems] = useState(initialItems);
+  const { state, dispatch } = useAppState();
+  const items = state.inventory;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState("add");
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Filtering
   const filteredItems = items.filter((item) => {
     const matchesCategory =
       selectedCategory === "All" || item.category === selectedCategory;
@@ -34,14 +36,12 @@ export default function InventoryScreen() {
     return matchesCategory && matchesSearch;
   });
 
-  // Summary stats
   const totalItems = items.reduce((sum, item) => sum + item.stock, 0);
   const inventoryValue = items.reduce(
     (sum, item) => sum + item.stock * item.productionCost,
     0,
   );
 
-  // Handlers
   const openAddModal = () => {
     setSelectedItem(null);
     setModalMode("add");
@@ -62,28 +62,25 @@ export default function InventoryScreen() {
 
   const handleSave = (data) => {
     if (modalMode === "add") {
-      setItems([data, ...items]);
+      dispatch({ type: "ADD_TO_INVENTORY", payload: data });
     } else if (modalMode === "edit") {
-      setItems(items.map((i) => (i.id === data.id ? data : i)));
+      dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
     } else if (modalMode === "restock") {
-      setItems(
-        items.map((i) =>
-          i.id === data.itemId ? { ...i, stock: i.stock + data.quantity } : i,
-        ),
-      );
+      dispatch({
+        type: "RESTOCK_ITEM",
+        payload: { itemId: data.itemId, quantity: data.quantity },
+      });
     }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Inventory</Text>
           <Text style={styles.subtitle}>{items.length} items</Text>
         </View>
 
-        {/* Summary Cards */}
         <View style={styles.cardsRow}>
           <SummaryCard
             title="Total Stock"
@@ -98,7 +95,6 @@ export default function InventoryScreen() {
           />
         </View>
 
-        {/* Search + Filter */}
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -110,7 +106,6 @@ export default function InventoryScreen() {
           onSelect={setSelectedCategory}
         />
 
-        {/* Item List */}
         {filteredItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
@@ -134,7 +129,6 @@ export default function InventoryScreen() {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={openAddModal}
@@ -143,7 +137,6 @@ export default function InventoryScreen() {
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Modal */}
       <InventoryItemModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}

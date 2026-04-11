@@ -3,11 +3,11 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
 
-import DashboardScreen from "../screens/DashboardScreen";
+import HomeStack from "./HomeStack";
 import InventoryScreen from "../screens/InventoryScreen";
 import POSScreen from "../screens/POSScreen";
 import EventsScreen from "../screens/EventsScreen";
-import MoreScreen from "../screens/MoreScreen";
+import MoreStack from "./MoreStack";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,7 +23,7 @@ export default function TabNavigator() {
     >
       <Tab.Screen
         name="Home"
-        component={DashboardScreen}
+        component={HomeStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -62,7 +62,7 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="More"
-        component={MoreScreen}
+        component={MoreStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="ellipsis-horizontal" size={size} color={color} />

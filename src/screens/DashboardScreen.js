@@ -1,33 +1,44 @@
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, SIZES } from "../constants/theme";
-import { dashboardStats, upcomingEvents } from "../data/mockData";
+import { useAppState } from "../context/AppContext";
 import SummaryCard from "../components/SummaryCard";
 import EventCard from "../components/EventCard";
 
-export default function DashboardScreen() {
-  const netProfit = dashboardStats.income - dashboardStats.expenses;
+export default function DashboardScreen({ navigation }) {
+  const { state } = useAppState();
+
+  const income = state.sales.reduce((sum, sale) => sum + sale.total, 0);
+  const expenses = state.events.reduce(
+    (sum, event) =>
+      sum + event.expenses.reduce((s, exp) => s + exp.amount, 0),
+    0,
+  );
+  const netProfit = income - expenses;
+  const upcomingEvents = state.events.filter((e) => e.status !== "past");
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>Welcome back!</Text>
           <Text style={styles.subtitle}>Your Dashboard</Text>
         </View>
 
-        {/* Summary Cards */}
         <View style={styles.cardsRow}>
           <SummaryCard
             title="Income"
-            amount={dashboardStats.income}
+            amount={income}
             color={COLORS.income}
+            onPress={() => navigation.navigate("Finance", { filter: "Income" })}
           />
           <SummaryCard
             title="Expenses"
-            amount={dashboardStats.expenses}
+            amount={expenses}
             color={COLORS.expense}
+            onPress={() =>
+              navigation.navigate("Finance", { filter: "Expenses" })
+            }
           />
         </View>
         <SummaryCard
@@ -35,13 +46,17 @@ export default function DashboardScreen() {
           amount={netProfit}
           color={COLORS.profit}
           fullWidth
+          onPress={() => navigation.navigate("Finance", { filter: "All" })}
         />
 
-        {/* Upcoming Events */}
         <Text style={styles.sectionTitle}>Upcoming Events</Text>
-        {upcomingEvents.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
+        {upcomingEvents.length === 0 ? (
+          <Text style={styles.emptyText}>No upcoming events</Text>
+        ) : (
+          upcomingEvents.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))
+        )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -82,6 +97,12 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginTop: 12,
     marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: SIZES.fontBody,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    paddingVertical: 20,
   },
   bottomSpacer: {
     height: 24,

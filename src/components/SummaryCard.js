@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
 
 export default function SummaryCard({
@@ -7,15 +7,22 @@ export default function SummaryCard({
   color,
   fullWidth,
   format = "currency",
+  onPress,
 }) {
   const displayAmount =
     format === "number" ? `${amount}` : `$${amount.toFixed(2)}`;
 
+  const Wrapper = onPress ? TouchableOpacity : View;
+  const wrapperProps = onPress ? { onPress, activeOpacity: 0.7 } : {};
+
   return (
-    <View style={[styles.card, CARD_SHADOW, fullWidth && styles.fullWidth]}>
+    <Wrapper
+      style={[styles.card, CARD_SHADOW, fullWidth && styles.fullWidth]}
+      {...wrapperProps}
+    >
       <Text style={styles.title}>{title}</Text>
       <Text style={[styles.amount, { color }]}>{displayAmount}</Text>
-    </View>
+    </Wrapper>
   );
 }
 
