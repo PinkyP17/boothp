@@ -5,8 +5,6 @@ import {
   View,
   ScrollView,
   LayoutAnimation,
-  Platform,
-  UIManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,13 +16,6 @@ import CartBar from "../components/pos/CartBar";
 import CartModal from "../components/pos/CartModal";
 import PaymentModal from "../components/pos/PaymentModal";
 
-// Enable LayoutAnimation on Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 export default function POSScreen() {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -175,7 +166,7 @@ export default function POSScreen() {
       <CartBar
         itemCount={itemCount}
         total={total}
-        onPressPay={() => setPaymentModalVisible(true)}
+        onPressPay={() => setCartModalVisible(true)}
         onPressExpand={() => setCartModalVisible(true)}
       />
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -26,9 +26,15 @@ export default function CartModal({
 }) {
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [editPriceValue, setEditPriceValue] = useState("");
-  const [discountInput, setDiscountInput] = useState(
-    discount.value > 0 ? discount.value.toString() : "",
-  );
+  const [discountInput, setDiscountInput] = useState("");
+
+  // Sync discount input when modal opens or discount resets
+  useEffect(() => {
+    if (visible) {
+      setDiscountInput(discount.value > 0 ? discount.value.toString() : "");
+      setEditingPriceId(null);
+    }
+  }, [visible]);
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.unitPrice * item.quantity,
