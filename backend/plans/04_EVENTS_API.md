@@ -1,5 +1,11 @@
 # Phase 4: Events + Expenses
 
+## Workflow
+1. Build the backend (entities, repos, service, controllers for events + expenses)
+2. Wire the frontend Events screen, EventModal, and EventExpenseModal to call API
+3. Test end-to-end on device
+4. Move to Phase 5
+
 ---
 
 ## Database Tables

@@ -1,16 +1,23 @@
-import { createContext, useContext, useReducer } from "react";
-import { inventoryItems, events } from "../data/mockData";
+import { createContext, useContext, useReducer, useMemo } from "react";
+import { events } from "../data/mockData";
+import { API_BASE_URL } from "../config/api";
 
 const AppContext = createContext();
 
 const initialState = {
-  inventory: [...inventoryItems],
+  inventory: [],
   sales: [],
   events: [...events],
 };
 
 function appReducer(state, action) {
   switch (action.type) {
+    case "SET_INVENTORY":
+      return {
+        ...state,
+        inventory: action.payload,
+      };
+
     case "ADD_TO_INVENTORY":
       return {
         ...state,
@@ -98,8 +105,65 @@ function appReducer(state, action) {
 export function AppStateProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  const inventoryActions = useMemo(
+    () => ({
+      loadInventory: async (token) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/inventory`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "SET_INVENTORY", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to load inventory:", error);
+        }
+      },
+
+      addInventoryItem: async (token, itemData) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/inventory`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(itemData),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "ADD_TO_INVENTORY", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to add inventory item:", error);
+        }
+      },
+
+      updateInventoryItem: async (token, itemId, itemData) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/inventory/${itemId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(itemData),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to update inventory item:", error);
+        }
+      },
+    }),
+    [],
+  );
+
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, ...inventoryActions }}>
       {children}
     </AppContext.Provider>
   );

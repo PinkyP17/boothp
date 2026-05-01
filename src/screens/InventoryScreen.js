@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
@@ -18,8 +19,15 @@ import InventoryItemCard from "../components/inventory/InventoryItemCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
 
 export default function InventoryScreen() {
-  const { state, dispatch } = useAppState();
+  const { state, loadInventory, addInventoryItem, updateInventoryItem } = useAppState();
+  const { token } = useAuth();
   const items = state.inventory;
+
+  useEffect(() => {
+    if (token) {
+      loadInventory(token);
+    }
+  }, [token]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -60,12 +68,13 @@ export default function InventoryScreen() {
     setModalVisible(true);
   };
 
-  const handleSave = (data) => {
+  const handleSave = async (data) => {
     if (modalMode === "add") {
-      dispatch({ type: "ADD_TO_INVENTORY", payload: data });
+      await addInventoryItem(token, data);
     } else if (modalMode === "edit") {
-      dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
+      await updateInventoryItem(token, data.id, data);
     } else if (modalMode === "restock") {
+      // TODO: Wire to restock API in Phase 3
       dispatch({
         type: "RESTOCK_ITEM",
         payload: { itemId: data.itemId, quantity: data.quantity },

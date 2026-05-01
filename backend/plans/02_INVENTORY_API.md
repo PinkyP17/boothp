@@ -1,5 +1,11 @@
 # Phase 2: Inventory CRUD
 
+## Workflow
+1. Build the backend (entity, repo, service, controller)
+2. Wire the frontend Inventory screen to call these endpoints instead of mock data
+3. Test end-to-end on device
+4. Move to Phase 3
+
 ## Database Table — `inventory_items`
 
 | Column | Type | Constraints |

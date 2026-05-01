@@ -1,5 +1,12 @@
 # Phase 3: Restock
 
+## Workflow
+1. Build the backend (entity, repo, service method, controller endpoint)
+2. Wire the frontend Restock modal to call POST `/{id}/restock` instead of local state
+3. Test end-to-end on device
+4. Move to Phase 4
+
+## Overview
 Restocking an item does two things in one transaction:
 1. Increments the item's stock count
 2. Creates a `restock_records` row (so the cost appears as an expense in Finance)

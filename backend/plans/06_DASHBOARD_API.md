@@ -1,5 +1,13 @@
 # Phase 6: Dashboard / Finance
 
+## Workflow
+1. Build the backend (service that aggregates sales + event expenses + restocks, controller)
+2. Wire the frontend Dashboard screen and Finance screen to call GET `/api/v1/dashboard`
+3. Replace hardcoded summary cards and transaction lists with real data
+4. Test end-to-end on device
+5. Move to Phase 7
+
+## Overview
 The dashboard endpoint aggregates all financial data into a single response. This is the endpoint the Dashboard screen and Finance screen will call.
 
 ---

@@ -1,12 +1,14 @@
 # Artist Booth Manager — Backend Overview
 
 ## Tech Stack
+
 - **Framework:** Spring Boot (Java 17+)
-- **Database:** PostgreSQL
+- **Database:** PostgreSQL 17
 - **Auth:** JWT (jjwt library) + BCrypt passwords
 - **ORM:** Spring Data JPA / Hibernate
 
 ## Architecture
+
 ```
 Controller → Service → Repository → PostgreSQL
      ↑
@@ -15,7 +17,22 @@ Controller → Service → Repository → PostgreSQL
 
 Every data table has a `user_id` foreign key. Every service method takes `userId` to scope queries — user A never sees user B's data.
 
+## Development Approach
+
+**Feature-by-feature**: Build BE → Wire to FE → Verify end-to-end → Move to next feature.
+
+| Phase         | Backend                    | Frontend Wiring            | Status   |
+| ------------- | -------------------------- | -------------------------- | -------- |
+| 1. Auth       | Signup + Login + JWT       | Login/Signup screens → API | COMPLETE |
+| 2. Inventory  | CRUD endpoints             | Inventory screen → API     | TODO     |
+| 3. Restock    | Restock + expense record   | Restock modal → API        | TODO     |
+| 4. Events     | Events + nested expenses   | Events screen → API        | TODO     |
+| 5. Sales      | POS sale + stock decrement | POS screen → API           | TODO     |
+| 6. Dashboard  | Aggregated finance data    | Dashboard + Finance → API  | TODO     |
+| 7. Validation | Global error handling      | FE error display           | TODO     |
+
 ## Database Schema (7 tables)
+
 ```
 users
 inventory_items  (FK → users)
@@ -27,6 +44,7 @@ sale_items       (FK → sales CASCADE, inventory_items)
 ```
 
 ## API Endpoints (12 total)
+
 ```
 POST   /api/v1/auth/signup              ← public
 POST   /api/v1/auth/login               ← public
@@ -50,6 +68,7 @@ GET    /api/v1/dashboard
 ```
 
 ## Financial Data Flow
+
 ```
 POS Sales         → Income
 Event Expenses    → Expenses
@@ -59,29 +78,48 @@ Restock Records   → Expenses
 ```
 
 ## Transactional Operations
+
 1. **Sale creation** — persists sale + decrements inventory stock (atomic)
 2. **Restock** — increments stock + creates expense record (atomic)
 
-## Implementation Phases
-1. `01_PROJECT_SETUP.md`   — Spring Boot skeleton + JWT auth
-2. `02_INVENTORY_API.md`   — Inventory CRUD
-3. `03_RESTOCK_API.md`     — Restock with expense tracking
-4. `04_EVENTS_API.md`      — Events + nested expenses
-5. `05_SALES_API.md`       — POS sales + stock decrement
-6. `06_DASHBOARD_API.md`   — Aggregated dashboard/finance data
-7. `07_VALIDATION_AND_ERRORS.md` — Input validation + error handling
+## Test Account
+
+```
+Email:    test2@test.com
+Password: 123
+Name:     Test User 2
+```
+
+```
+Email:    cuba@gmail.com
+Password: 123456
+Name:     Test User 2
+```
+
+(Note: `test@test.com` also exists but password may differ — use test2 for testing)
 
 ## Running Locally
+
 ```bash
-# Prerequisites: Java 17+, PostgreSQL running
-createdb artistbooth
+# Prerequisites: Java 17+, PostgreSQL 17 running
+# DB password: 123
+psql -U postgres -c "CREATE DATABASE artistbooth;"
 cd backend
 ./mvnw spring-boot:run
 # Server starts on http://localhost:8080
 ```
 
+## Frontend API Config
+
+- Physical device: uses computer's local IP (currently `192.168.1.9:8080`)
+- Android emulator: `10.0.2.2:8080`
+- iOS/web: `localhost:8080`
+- Config file: `src/config/api.js`
+
 ## Key Design Decisions
+
 - **Restock is its own table** (not an event_expense) — restocks aren't tied to events
 - **sale_items.name snapshots** the item name at sale time — renames don't corrupt history
 - **No event-sale link yet** — can add optional event_id FK on sales later for per-event profit
 - **ddl-auto=update** for local dev — switch to Flyway before deployment
+- **CORS** currently allows all origins for dev — tighten before production

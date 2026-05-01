@@ -1,5 +1,12 @@
 # Phase 5: POS / Sales
 
+## Workflow
+1. Build the backend (entities, repos, service with transactional sale + stock decrement, controller)
+2. Wire the frontend POS screen, CartModal, and PaymentModal to call API
+3. Test end-to-end on device — verify stock decrements after sale
+4. Move to Phase 6
+
+## Overview
 Sale creation is **transactional** — it persists the sale record AND decrements inventory stock for each sold item in one operation.
 
 ---

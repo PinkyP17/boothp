@@ -1,5 +1,11 @@
 # Phase 7: Validation + Error Handling
 
+## Workflow
+1. Add validation annotations to all DTOs and `@Valid` to controllers
+2. Build GlobalExceptionHandler for consistent error responses
+3. Update frontend API calls to parse and display error messages from the backend
+4. Test edge cases (missing fields, duplicates, not found, expired tokens)
+
 ---
 
 ## DTO Validation Annotations

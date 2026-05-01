@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useMemo } from "react";
+import { API_BASE_URL } from "../config/api";
 
 const AuthContext = createContext();
 
@@ -52,19 +53,28 @@ export function AuthProvider({ children }) {
       login: async (email, password) => {
         dispatch({ type: "SET_LOADING" });
         try {
-          // TODO: Replace with real API call to POST /api/v1/auth/login
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
           if (!email || !password) {
             throw new Error("Email and password are required");
           }
 
-          const mockUser = { id: 1, email, name: email.split("@")[0] };
-          const mockToken = "mock-jwt-token";
+          const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.message || "Invalid email or password");
+          }
 
           dispatch({
             type: "LOGIN_SUCCESS",
-            payload: { user: mockUser, token: mockToken },
+            payload: {
+              user: { id: data.userId, email: data.email },
+              token: data.token,
+            },
           });
         } catch (error) {
           dispatch({ type: "AUTH_ERROR", payload: error.message });
@@ -74,19 +84,28 @@ export function AuthProvider({ children }) {
       signup: async (name, email, password) => {
         dispatch({ type: "SET_LOADING" });
         try {
-          // TODO: Replace with real API call to POST /api/v1/auth/signup
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
           if (!name || !email || !password) {
             throw new Error("All fields are required");
           }
 
-          const mockUser = { id: 1, email, name };
-          const mockToken = "mock-jwt-token";
+          const res = await fetch(`${API_BASE_URL}/api/v1/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.message || "Signup failed");
+          }
 
           dispatch({
             type: "SIGNUP_SUCCESS",
-            payload: { user: mockUser, token: mockToken },
+            payload: {
+              user: { id: data.userId, email: data.email, name },
+              token: data.token,
+            },
           });
         } catch (error) {
           dispatch({ type: "AUTH_ERROR", payload: error.message });
