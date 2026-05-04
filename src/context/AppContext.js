@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useMemo } from "react";
-import { events } from "../data/mockData";
+// events mock data no longer used — loaded from API
+
 import { API_BASE_URL } from "../config/api";
 
 const AppContext = createContext();
@@ -7,7 +8,7 @@ const AppContext = createContext();
 const initialState = {
   inventory: [],
   sales: [],
-  events: [...events],
+  events: [],
 };
 
 function appReducer(state, action) {
@@ -57,6 +58,12 @@ function appReducer(state, action) {
         inventory: updatedInventory,
       };
     }
+
+    case "SET_EVENTS":
+      return {
+        ...state,
+        events: action.payload,
+      };
 
     case "ADD_EVENT":
       return {
@@ -158,12 +165,135 @@ export function AppStateProvider({ children }) {
           console.error("Failed to update inventory item:", error);
         }
       },
+
+      restockItem: async (token, itemId, restockData) => {
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/api/v1/inventory/${itemId}/restock`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(restockData),
+            },
+          );
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to restock item:", error);
+        }
+      },
+    }),
+    [],
+  );
+
+  const eventActions = useMemo(
+    () => ({
+      loadEvents: async (token) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/events`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "SET_EVENTS", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to load events:", error);
+        }
+      },
+
+      addEvent: async (token, eventData) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/events`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(eventData),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "ADD_EVENT", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to add event:", error);
+        }
+      },
+
+      updateEvent: async (token, eventId, eventData) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/events/${eventId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(eventData),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "UPDATE_EVENT", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to update event:", error);
+        }
+      },
+
+      addEventExpense: async (token, eventId, expenseData) => {
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/api/v1/events/${eventId}/expenses`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(expenseData),
+            },
+          );
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "UPDATE_EVENT", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to add expense:", error);
+        }
+      },
+
+      deleteEventExpense: async (token, eventId, expenseId) => {
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/api/v1/events/${eventId}/expenses/${expenseId}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          if (res.ok) {
+            dispatch({
+              type: "DELETE_EVENT_EXPENSE",
+              payload: { eventId, expenseId },
+            });
+          }
+        } catch (error) {
+          console.error("Failed to delete expense:", error);
+        }
+      },
     }),
     [],
   );
 
   return (
-    <AppContext.Provider value={{ state, dispatch, ...inventoryActions }}>
+    <AppContext.Provider
+      value={{ state, dispatch, ...inventoryActions, ...eventActions }}
+    >
       {children}
     </AppContext.Provider>
   );

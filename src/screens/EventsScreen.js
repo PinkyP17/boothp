@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../constants/theme";
 import { EVENT_STATUSES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
@@ -20,8 +21,22 @@ import EventDetailModal from "../components/event/EventDetailModal";
 import EventExpenseModal from "../components/event/EventExpenseModal";
 
 export default function EventsScreen() {
-  const { state, dispatch } = useAppState();
+  const {
+    state,
+    loadEvents,
+    addEvent,
+    updateEvent,
+    addEventExpense,
+    deleteEventExpense,
+  } = useAppState();
+  const { token } = useAuth();
   const events = state.events;
+
+  useEffect(() => {
+    if (token) {
+      loadEvents(token);
+    }
+  }, [token]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -69,11 +84,11 @@ export default function EventsScreen() {
     return events.find((e) => e.id === detailEvent.id) || detailEvent;
   };
 
-  const handleSaveEvent = (eventData) => {
+  const handleSaveEvent = async (eventData) => {
     if (eventModalMode === "add") {
-      dispatch({ type: "ADD_EVENT", payload: eventData });
+      await addEvent(token, eventData);
     } else {
-      dispatch({ type: "UPDATE_EVENT", payload: eventData });
+      await updateEvent(token, eventData.id, eventData);
     }
   };
 
@@ -84,18 +99,12 @@ export default function EventsScreen() {
     setEventModalVisible(true);
   };
 
-  const handleAddExpense = (expense) => {
-    dispatch({
-      type: "ADD_EVENT_EXPENSE",
-      payload: { eventId: detailEvent.id, expense },
-    });
+  const handleAddExpense = async (expense) => {
+    await addEventExpense(token, detailEvent.id, expense);
   };
 
-  const handleDeleteExpense = (eventId, expenseId) => {
-    dispatch({
-      type: "DELETE_EVENT_EXPENSE",
-      payload: { eventId, expenseId },
-    });
+  const handleDeleteExpense = async (eventId, expenseId) => {
+    await deleteEventExpense(token, eventId, expenseId);
   };
 
   return (

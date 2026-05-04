@@ -10,45 +10,82 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../../constants/theme";
 
 const emptyForm = {
   name: "",
-  date: "",
-  endDate: "",
+  date: null,
+  endDate: null,
   location: "",
+  boothFee: "",
 };
+
+function formatDate(date) {
+  if (!date) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 export default function EventModal({ visible, onClose, onSave, event, mode }) {
   const [form, setForm] = useState(emptyForm);
+  const [showDatePicker, setShowDatePicker] = useState(null); // "date" or "endDate"
 
   useEffect(() => {
     if (mode === "add") {
       setForm(emptyForm);
     } else if (mode === "edit" && event) {
+      const existingBoothFee = event.expenses
+        ? event.expenses.find((e) => e.category === "Booth Fee")
+        : null;
       setForm({
         name: event.name,
-        date: event.date,
-        endDate: event.endDate || "",
+        date: parseDate(event.date),
+        endDate: parseDate(event.endDate),
         location: event.location,
+        boothFee: existingBoothFee ? String(existingBoothFee.amount) : "",
       });
     }
+    setShowDatePicker(null);
   }, [visible, mode, event]);
 
   const title = mode === "add" ? "Add Event" : "Edit Event";
   const saveLabel = mode === "add" ? "Add" : "Save";
 
+  const handleDateChange = (e, selectedDate) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(null);
+    }
+    if (e.type === "dismissed") return;
+    if (selectedDate) {
+      setForm({ ...form, [showDatePicker]: selectedDate });
+    }
+  };
+
   const handleSave = () => {
-    if (!form.name.trim() || !form.date.trim()) return;
-    onSave({
+    if (!form.name.trim() || !form.date) return;
+    const data = {
       id: event?.id || Date.now().toString(),
       name: form.name.trim(),
-      date: form.date.trim(),
-      endDate: form.endDate.trim() || form.date.trim(),
+      date: formatDate(form.date),
+      endDate: formatDate(form.endDate || form.date),
       location: form.location.trim(),
       status: event?.status || "upcoming",
       expenses: event?.expenses || [],
-    });
+    };
+    if (form.boothFee) {
+      data.boothFee = parseFloat(form.boothFee);
+    }
+    onSave(data);
     onClose();
   };
 
@@ -72,22 +109,60 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
             />
 
             <Text style={styles.label}>Start Date</Text>
-            <TextInput
-              style={styles.input}
-              value={form.date}
-              onChangeText={(text) => setForm({ ...form, date: text })}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={COLORS.textSecondary}
-            />
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker("date")}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={form.date ? COLORS.textPrimary : COLORS.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.dateText,
+                  !form.date && styles.datePlaceholder,
+                ]}
+              >
+                {form.date ? formatDate(form.date) : "Select start date"}
+              </Text>
+            </TouchableOpacity>
 
-            <Text style={styles.label}>End Date (optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={form.endDate}
-              onChangeText={(text) => setForm({ ...form, endDate: text })}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={COLORS.textSecondary}
-            />
+            <Text style={styles.label}>End Date</Text>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker("endDate")}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={
+                  form.endDate ? COLORS.textPrimary : COLORS.textSecondary
+                }
+              />
+              <Text
+                style={[
+                  styles.dateText,
+                  !form.endDate && styles.datePlaceholder,
+                ]}
+              >
+                {form.endDate ? formatDate(form.endDate) : "Select end date"}
+              </Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={form[showDatePicker] || new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "inline" : "default"}
+                onChange={handleDateChange}
+                minimumDate={
+                  showDatePicker === "endDate" && form.date
+                    ? form.date
+                    : undefined
+                }
+              />
+            )}
 
             <Text style={styles.label}>Location</Text>
             <TextInput
@@ -95,6 +170,16 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
               value={form.location}
               onChangeText={(text) => setForm({ ...form, location: text })}
               placeholder="e.g. Los Angeles Convention Center"
+              placeholderTextColor={COLORS.textSecondary}
+            />
+
+            <Text style={styles.label}>Booth Fee (optional)</Text>
+            <TextInput
+              style={styles.input}
+              value={form.boothFee}
+              onChangeText={(text) => setForm({ ...form, boothFee: text })}
+              keyboardType="decimal-pad"
+              placeholder="e.g. 500.00"
               placeholderTextColor={COLORS.textSecondary}
             />
           </ScrollView>
@@ -149,6 +234,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: SIZES.fontBody,
     color: COLORS.textPrimary,
+  },
+  dateButton: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dateText: {
+    fontSize: SIZES.fontBody,
+    color: COLORS.textPrimary,
+  },
+  datePlaceholder: {
+    color: COLORS.textSecondary,
   },
   footer: {
     flexDirection: "row",

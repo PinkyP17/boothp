@@ -13,48 +13,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.artistbooth.backend.dto.InventoryItemRequest;
-import com.artistbooth.backend.dto.RestockRequest;
-import com.artistbooth.backend.entity.InventoryItem;
+import com.artistbooth.backend.dto.EventRequest;
+import com.artistbooth.backend.entity.Event;
 import com.artistbooth.backend.entity.User;
-import com.artistbooth.backend.service.InventoryService;
+import com.artistbooth.backend.service.EventService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/inventory")
+@RequestMapping("/api/v1/events")
 @RequiredArgsConstructor
-public class InventoryController {
+public class EventController {
 
-    private final InventoryService inventoryService;
+    private final EventService eventService;
 
     @GetMapping
-    public List<InventoryItem> getAll(@AuthenticationPrincipal User user) {
-        return inventoryService.getAll(user.getId());
+    public List<Event> getAll(@AuthenticationPrincipal User user) {
+        return eventService.getAll(user.getId());
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InventoryItem create(
+    public Event create(
             @AuthenticationPrincipal User user,
-            @Valid @RequestBody InventoryItemRequest req) {
-        return inventoryService.create(user.getId(), req);
+            @Valid @RequestBody EventRequest req) {
+        return eventService.create(user.getId(), req);
     }
 
     @PutMapping("/{id}")
-    public InventoryItem update(
+    public Event update(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
-            @Valid @RequestBody InventoryItemRequest req) {
-        return inventoryService.update(user.getId(), id, req);
-    }
-
-    @PostMapping("/{id}/restock")
-    public InventoryItem restock(
-            @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody RestockRequest req) {
-        return inventoryService.restock(user.getId(), id, req);
+            @Valid @RequestBody EventRequest req) {
+        return eventService.update(user.getId(), id, req);
     }
 }

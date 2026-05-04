@@ -19,7 +19,7 @@ import InventoryItemCard from "../components/inventory/InventoryItemCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
 
 export default function InventoryScreen() {
-  const { state, loadInventory, addInventoryItem, updateInventoryItem } = useAppState();
+  const { state, loadInventory, addInventoryItem, updateInventoryItem, restockItem } = useAppState();
   const { token } = useAuth();
   const items = state.inventory;
 
@@ -74,10 +74,9 @@ export default function InventoryScreen() {
     } else if (modalMode === "edit") {
       await updateInventoryItem(token, data.id, data);
     } else if (modalMode === "restock") {
-      // TODO: Wire to restock API in Phase 3
-      dispatch({
-        type: "RESTOCK_ITEM",
-        payload: { itemId: data.itemId, quantity: data.quantity },
+      await restockItem(token, data.itemId, {
+        quantity: data.quantity,
+        cost: data.cost,
       });
     }
   };
