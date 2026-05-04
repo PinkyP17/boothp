@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import CategoryFilter from "../components/CategoryFilter";
 import POSItemTile from "../components/pos/POSItemTile";
 import CartBar from "../components/pos/CartBar";
@@ -18,7 +19,8 @@ import CartModal from "../components/pos/CartModal";
 import PaymentModal from "../components/pos/PaymentModal";
 
 export default function POSScreen() {
-  const { state, dispatch } = useAppState();
+  const { state, createSale, loadInventory } = useAppState();
+  const { token } = useAuth();
   const inventoryItems = state.inventory;
 
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -89,24 +91,37 @@ export default function POSScreen() {
     setCart((prev) => prev.filter((c) => c.itemId !== itemId));
   };
 
-  const confirmSale = (paymentMethod) => {
-    const sale = {
-      id: Date.now().toString(),
-      items: [...cart],
-      subtotal,
-      discount: { ...discount, amount: discountAmount },
+  const confirmSale = async (paymentMethod) => {
+    const saleData = {
+      items: cart.map((c) => ({
+        itemId: c.itemId,
+        name: c.name,
+        quantity: c.quantity,
+        unitPrice: c.unitPrice,
+        originalPrice: c.originalPrice,
+      })),
+      discount:
+        discount.value > 0
+          ? {
+              type: discount.type === "percent" ? "percent" : "fixed",
+              value: discount.value,
+              amount: discountAmount,
+            }
+          : null,
       total,
       paymentMethod,
-      timestamp: new Date().toISOString(),
     };
 
-    dispatch({ type: "ADD_SALE", payload: sale });
-
-    setCart([]);
-    setDiscount({ type: "percent", value: 0 });
-    setPaymentModalVisible(false);
-    setCartModalVisible(false);
-    setShowSuccess(true);
+    const result = await createSale(token, saleData);
+    if (result) {
+      // Reload inventory to get updated stock from backend
+      loadInventory(token);
+      setCart([]);
+      setDiscount({ type: "percent", value: 0 });
+      setPaymentModalVisible(false);
+      setCartModalVisible(false);
+      setShowSuccess(true);
+    }
   };
 
   useEffect(() => {

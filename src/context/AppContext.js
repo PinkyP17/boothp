@@ -43,6 +43,12 @@ function appReducer(state, action) {
         ),
       };
 
+    case "SET_SALES":
+      return {
+        ...state,
+        sales: action.payload,
+      };
+
     case "ADD_SALE": {
       const sale = action.payload;
       const updatedInventory = state.inventory.map((item) => {
@@ -290,9 +296,49 @@ export function AppStateProvider({ children }) {
     [],
   );
 
+  const salesActions = useMemo(
+    () => ({
+      loadSales: async (token) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "SET_SALES", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to load sales:", error);
+        }
+      },
+
+      createSale: async (token, saleData) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(saleData),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "ADD_SALE", payload: data });
+            return data;
+          }
+        } catch (error) {
+          console.error("Failed to create sale:", error);
+        }
+        return null;
+      },
+    }),
+    [],
+  );
+
   return (
     <AppContext.Provider
-      value={{ state, dispatch, ...inventoryActions, ...eventActions }}
+      value={{ state, dispatch, ...inventoryActions, ...eventActions, ...salesActions }}
     >
       {children}
     </AppContext.Provider>
