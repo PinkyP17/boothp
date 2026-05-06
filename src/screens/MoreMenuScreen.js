@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { useAuth } from "../context/AuthContext";
 
 const MENU_ITEMS = [
   {
@@ -25,6 +26,15 @@ const MENU_ITEMS = [
 ];
 
 export default function MoreMenuScreen({ navigation }) {
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Log Out", style: "destructive", onPress: logout },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
@@ -58,6 +68,17 @@ export default function MoreMenuScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={[styles.logoutButton, CARD_SHADOW]}
+          onPress={handleLogout}
+          activeOpacity={0.6}
+        >
+          <View style={[styles.iconBox, { backgroundColor: "#FF3B3015" }]}>
+            <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+          </View>
+          <Text style={styles.logoutLabel}>Log Out</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -107,5 +128,20 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontBody,
     fontWeight: "500",
     color: COLORS.textPrimary,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: SIZES.cardRadius,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 20,
+  },
+  logoutLabel: {
+    flex: 1,
+    fontSize: SIZES.fontBody,
+    fontWeight: "500",
+    color: "#FF3B30",
   },
 });

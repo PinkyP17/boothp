@@ -2,12 +2,11 @@ package com.artistbooth.backend.service;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.artistbooth.backend.dto.SaleItemRequest;
+import com.artistbooth.backend.exception.ResourceNotFoundException;
 import com.artistbooth.backend.dto.SaleRequest;
 import com.artistbooth.backend.entity.InventoryItem;
 import com.artistbooth.backend.entity.Sale;
@@ -34,7 +33,7 @@ public class SaleService {
     @Transactional
     public Sale create(Long userId, SaleRequest req) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Sale sale = new Sale();
         sale.setUser(user);
@@ -61,8 +60,7 @@ public class SaleService {
             // Validate item exists and belongs to user
             InventoryItem inventoryItem = inventoryItemRepository
                     .findByIdAndUserId(itemReq.getItemId(), userId)
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
+                    .orElseThrow(() -> new ResourceNotFoundException(
                             "Inventory item not found: " + itemReq.getItemId()));
 
             // Create sale item

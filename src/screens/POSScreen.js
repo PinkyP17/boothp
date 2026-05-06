@@ -113,7 +113,7 @@ export default function POSScreen() {
     };
 
     const result = await createSale(token, saleData);
-    if (result) {
+    if (result?.success) {
       // Reload inventory to get updated stock from backend
       loadInventory(token);
       setCart([]);

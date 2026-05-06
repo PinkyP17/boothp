@@ -2,13 +2,12 @@ package com.artistbooth.backend.service;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.artistbooth.backend.dto.InventoryItemRequest;
 import com.artistbooth.backend.dto.RestockRequest;
+import com.artistbooth.backend.exception.ResourceNotFoundException;
 import com.artistbooth.backend.entity.InventoryItem;
 import com.artistbooth.backend.entity.RestockRecord;
 import com.artistbooth.backend.entity.User;
@@ -32,7 +31,7 @@ public class InventoryService {
 
     public InventoryItem create(Long userId, InventoryItemRequest req) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         InventoryItem item = new InventoryItem();
         item.setUser(user);
@@ -47,7 +46,7 @@ public class InventoryService {
 
     public InventoryItem update(Long userId, Long itemId, InventoryItemRequest req) {
         InventoryItem item = inventoryItemRepository.findByIdAndUserId(itemId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
 
         item.setName(req.getName());
         item.setCategory(req.getCategory());
@@ -61,10 +60,10 @@ public class InventoryService {
     @Transactional
     public InventoryItem restock(Long userId, Long itemId, RestockRequest req) {
         InventoryItem item = inventoryItemRepository.findByIdAndUserId(itemId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // 1. Increment stock
         item.setStock(item.getStock() + req.getQuantity());

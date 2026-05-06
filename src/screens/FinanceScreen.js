@@ -1,94 +1,72 @@
-import { useState, useMemo } from "react";
-import { StyleSheet, Text, View, ScrollView, FlatList } from "react-native";
+import { useState, useEffect, useMemo } from "react";
+import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, SIZES } from "../constants/theme";
 import { useAppState } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import FinanceSummary from "../components/finance/FinanceSummary";
 import FinanceChart from "../components/finance/FinanceChart";
 import FilterTabs from "../components/finance/FilterTabs";
 import TransactionCard from "../components/finance/TransactionCard";
 
 export default function FinanceScreen({ route }) {
-  const { state } = useAppState();
+  const { state, loadDashboard } = useAppState();
+  const { token } = useAuth();
   const initialFilter = route?.params?.filter || "All";
   const [filter, setFilter] = useState(initialFilter);
+  const dashboard = state.dashboard;
 
-  const { income, expenses, netProfit, transactions, chartData } =
-    useMemo(() => {
-      const incomeTotal = state.sales.reduce((sum, s) => sum + s.total, 0);
-      const expenseTotal = state.events.reduce(
-        (sum, ev) => sum + ev.expenses.reduce((s, exp) => s + exp.amount, 0),
-        0,
-      );
+  useEffect(() => {
+    if (token) {
+      loadDashboard(token);
+    }
+  }, [token]);
 
-      // Build income transactions from sales
-      const incomeTransactions = state.sales.map((sale) => ({
-        id: sale.id,
-        type: "income",
-        description:
-          sale.items.map((i) => `${i.name} x${i.quantity}`).join(", "),
-        amount: sale.total,
-        date: sale.date,
-        eventName: null,
-      }));
-
-      // Build expense transactions from event expenses
-      const expenseTransactions = state.events.flatMap((event) =>
-        event.expenses.map((exp) => ({
-          id: exp.id,
-          type: "expense",
-          description: exp.category,
-          amount: exp.amount,
-          date: exp.date || event.date,
-          eventName: event.name,
-        })),
-      );
-
-      const allTransactions = [...incomeTransactions, ...expenseTransactions]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      // Chart data — aggregate by event
-      const eventMap = {};
-      state.events.forEach((event) => {
-        eventMap[event.id] = {
-          name: event.name.length > 8
-            ? event.name.substring(0, 8) + "…"
-            : event.name,
-          income: 0,
-          expenses: event.expenses.reduce((s, exp) => s + exp.amount, 0),
-        };
-      });
-
-      // For chart, we just show overall totals if no per-event sales tracking
-      const chartLabels = Object.values(eventMap).map((e) => e.name);
-      const chartIncome = Object.values(eventMap).map((e) => e.income);
-      const chartExpenses = Object.values(eventMap).map((e) => e.expenses);
-
-      // If there are sales, add an "Sales" bar
-      if (incomeTotal > 0) {
-        chartLabels.unshift("Sales");
-        chartIncome.unshift(incomeTotal);
-        chartExpenses.unshift(0);
-      }
-
-      return {
-        income: incomeTotal,
-        expenses: expenseTotal,
-        netProfit: incomeTotal - expenseTotal,
-        transactions: allTransactions,
-        chartData: {
-          labels: chartLabels,
-          incomeData: chartIncome,
-          expenseData: chartExpenses,
-        },
-      };
-    }, [state.sales, state.events]);
+  const income = dashboard?.income ?? 0;
+  const expenses = dashboard?.totalExpenses ?? 0;
+  const netProfit = dashboard?.netProfit ?? 0;
+  const transactions = dashboard?.transactions ?? [];
 
   const filteredTransactions = useMemo(() => {
-    if (filter === "Income") return transactions.filter((t) => t.type === "income");
-    if (filter === "Expenses") return transactions.filter((t) => t.type === "expense");
+    if (filter === "Income")
+      return transactions.filter((t) => t.type === "income");
+    if (filter === "Expenses")
+      return transactions.filter((t) => t.type !== "income");
     return transactions;
   }, [transactions, filter]);
+
+  // Chart data — group by event expenses + overall sales
+  const chartData = useMemo(() => {
+    if (!dashboard) return { labels: [], incomeData: [], expenseData: [] };
+
+    const labels = [];
+    const incomeData = [];
+    const expenseData = [];
+
+    if (dashboard.income > 0) {
+      labels.push("Sales");
+      incomeData.push(Number(dashboard.income));
+      expenseData.push(0);
+    }
+
+    if (dashboard.restockExpenses > 0) {
+      labels.push("Restock");
+      incomeData.push(0);
+      expenseData.push(Number(dashboard.restockExpenses));
+    }
+
+    (dashboard.upcomingEvents || []).forEach((evt) => {
+      if (Number(evt.totalExpenses) > 0) {
+        const name =
+          evt.name.length > 8 ? evt.name.substring(0, 8) + "…" : evt.name;
+        labels.push(name);
+        incomeData.push(0);
+        expenseData.push(Number(evt.totalExpenses));
+      }
+    });
+
+    return { labels, incomeData, expenseData };
+  }, [dashboard]);
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom"]}>
@@ -112,8 +90,11 @@ export default function FinanceScreen({ route }) {
         {filteredTransactions.length === 0 ? (
           <Text style={styles.emptyText}>No transactions yet</Text>
         ) : (
-          filteredTransactions.map((transaction) => (
-            <TransactionCard key={transaction.id} transaction={transaction} />
+          filteredTransactions.map((transaction, index) => (
+            <TransactionCard
+              key={`${transaction.type}-${transaction.id}-${index}`}
+              transaction={transaction}
+            />
           ))
         )}
 

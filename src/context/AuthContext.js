@@ -66,7 +66,10 @@ export function AuthProvider({ children }) {
           const data = await res.json();
 
           if (!res.ok) {
-            throw new Error(data.message || "Invalid email or password");
+            const msg = data.errors
+              ? Object.values(data.errors).join(", ")
+              : data.message || "Invalid email or password";
+            throw new Error(msg);
           }
 
           dispatch({
@@ -97,7 +100,10 @@ export function AuthProvider({ children }) {
           const data = await res.json();
 
           if (!res.ok) {
-            throw new Error(data.message || "Signup failed");
+            const msg = data.errors
+              ? Object.values(data.errors).join(", ")
+              : data.message || "Signup failed";
+            throw new Error(msg);
           }
 
           dispatch({

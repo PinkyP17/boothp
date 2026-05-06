@@ -9,6 +9,7 @@ const initialState = {
   inventory: [],
   sales: [],
   events: [],
+  dashboard: null,
 };
 
 function appReducer(state, action) {
@@ -110,6 +111,12 @@ function appReducer(state, action) {
         ),
       };
 
+    case "SET_DASHBOARD":
+      return {
+        ...state,
+        dashboard: action.payload,
+      };
+
     default:
       return state;
   }
@@ -147,9 +154,12 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "ADD_TO_INVENTORY", payload: data });
+            return { success: true };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to add inventory item:", error);
+          return { success: false, message: "Network error" };
         }
       },
 
@@ -166,9 +176,12 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
+            return { success: true };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to update inventory item:", error);
+          return { success: false, message: "Network error" };
         }
       },
 
@@ -188,9 +201,12 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
+            return { success: true };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to restock item:", error);
+          return { success: false, message: "Network error" };
         }
       },
     }),
@@ -226,9 +242,12 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "ADD_EVENT", payload: data });
+            return { success: true };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to add event:", error);
+          return { success: false, message: "Network error" };
         }
       },
 
@@ -245,9 +264,12 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "UPDATE_EVENT", payload: data });
+            return { success: true };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to update event:", error);
+          return { success: false, message: "Network error" };
         }
       },
 
@@ -267,9 +289,12 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "UPDATE_EVENT", payload: data });
+            return { success: true };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to add expense:", error);
+          return { success: false, message: "Network error" };
         }
       },
 
@@ -325,12 +350,32 @@ export function AppStateProvider({ children }) {
           const data = await res.json();
           if (res.ok) {
             dispatch({ type: "ADD_SALE", payload: data });
-            return data;
+            return { success: true, data };
           }
+          return { success: false, message: data.message, errors: data.errors };
         } catch (error) {
           console.error("Failed to create sale:", error);
+          return { success: false, message: "Network error" };
         }
-        return null;
+      },
+    }),
+    [],
+  );
+
+  const dashboardActions = useMemo(
+    () => ({
+      loadDashboard: async (token) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/v1/dashboard`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (res.ok) {
+            dispatch({ type: "SET_DASHBOARD", payload: data });
+          }
+        } catch (error) {
+          console.error("Failed to load dashboard:", error);
+        }
       },
     }),
     [],
@@ -338,7 +383,7 @@ export function AppStateProvider({ children }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, ...inventoryActions, ...eventActions, ...salesActions }}
+      value={{ state, dispatch, ...inventoryActions, ...eventActions, ...salesActions, ...dashboardActions }}
     >
       {children}
     </AppContext.Provider>

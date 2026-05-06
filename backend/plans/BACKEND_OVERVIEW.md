@@ -24,12 +24,12 @@ Every data table has a `user_id` foreign key. Every service method takes `userId
 | Phase         | Backend                    | Frontend Wiring            | Status   |
 | ------------- | -------------------------- | -------------------------- | -------- |
 | 1. Auth       | Signup + Login + JWT       | Login/Signup screens → API | COMPLETE |
-| 2. Inventory  | CRUD endpoints             | Inventory screen → API     | TODO     |
-| 3. Restock    | Restock + expense record   | Restock modal → API        | TODO     |
-| 4. Events     | Events + nested expenses   | Events screen → API        | TODO     |
-| 5. Sales      | POS sale + stock decrement | POS screen → API           | TODO     |
-| 6. Dashboard  | Aggregated finance data    | Dashboard + Finance → API  | TODO     |
-| 7. Validation | Global error handling      | FE error display           | TODO     |
+| 2. Inventory  | CRUD endpoints             | Inventory screen → API     | COMPLETE |
+| 3. Restock    | Restock + expense record   | Restock modal → API        | COMPLETE |
+| 4. Events     | Events + nested expenses   | Events screen → API        | COMPLETE |
+| 5. Sales      | POS sale + stock decrement | POS screen → API           | COMPLETE |
+| 6. Dashboard  | Aggregated finance data    | Dashboard + Finance → API  | COMPLETE |
+| 7. Validation | Global error handling      | FE error display           | COMPLETE |
 
 ## Database Schema (7 tables)
 

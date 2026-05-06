@@ -1,21 +1,27 @@
+import { useEffect } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, SIZES } from "../constants/theme";
 import { useAppState } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
 import EventCard from "../components/EventCard";
 
 export default function DashboardScreen({ navigation }) {
-  const { state } = useAppState();
+  const { state, loadDashboard } = useAppState();
+  const { token } = useAuth();
+  const dashboard = state.dashboard;
 
-  const income = state.sales.reduce((sum, sale) => sum + sale.total, 0);
-  const expenses = state.events.reduce(
-    (sum, event) =>
-      sum + event.expenses.reduce((s, exp) => s + exp.amount, 0),
-    0,
-  );
-  const netProfit = income - expenses;
-  const upcomingEvents = state.events.filter((e) => e.status !== "past");
+  useEffect(() => {
+    if (token) {
+      loadDashboard(token);
+    }
+  }, [token]);
+
+  const income = dashboard?.income ?? 0;
+  const expenses = dashboard?.totalExpenses ?? 0;
+  const netProfit = dashboard?.netProfit ?? 0;
+  const upcomingEvents = dashboard?.upcomingEvents ?? [];
 
   return (
     <SafeAreaView style={styles.safe}>

@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.artistbooth.backend.dto.AuthResponse;
 import com.artistbooth.backend.dto.LoginRequest;
 import com.artistbooth.backend.dto.SignupRequest;
+
+import jakarta.validation.Valid;
 import com.artistbooth.backend.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,13 +24,13 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signup(@RequestBody SignupRequest request) {
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
         AuthResponse response = authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }

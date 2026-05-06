@@ -9,6 +9,8 @@ import com.artistbooth.backend.dto.AuthResponse;
 import com.artistbooth.backend.dto.LoginRequest;
 import com.artistbooth.backend.dto.SignupRequest;
 import com.artistbooth.backend.entity.User;
+import com.artistbooth.backend.exception.BadCredentialsException;
+import com.artistbooth.backend.exception.DuplicateEmailException;
 import com.artistbooth.backend.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -23,7 +25,7 @@ public class AuthService {
 
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already in use");
+            throw new DuplicateEmailException("Email already in use");
         }
 
         User user = User.builder()
@@ -46,10 +48,10 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new BadCredentialsException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user);
