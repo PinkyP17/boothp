@@ -6,7 +6,7 @@ import { COLORS } from "../constants/theme";
 import HomeStack from "./HomeStack";
 import InventoryScreen from "../screens/InventoryScreen";
 import POSScreen from "../screens/POSScreen";
-import EventsScreen from "../screens/EventsScreen";
+import EventsStack from "./EventsStack";
 import MoreStack from "./MoreStack";
 
 const Tab = createBottomTabNavigator();
@@ -53,7 +53,7 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="Events"
-        component={EventsScreen}
+        component={EventsStack}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size} color={color} />

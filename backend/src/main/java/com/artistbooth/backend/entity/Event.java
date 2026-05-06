@@ -47,6 +47,9 @@ public class Event {
     @Column(nullable = false)
     private String status;
 
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EventExpense> expenses = new ArrayList<>();
 
@@ -114,6 +117,14 @@ public class Event {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public List<EventExpense> getExpenses() {

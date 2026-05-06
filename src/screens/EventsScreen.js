@@ -17,17 +17,13 @@ import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
 import EventTimelineCard from "../components/event/EventTimelineCard";
 import EventModal from "../components/event/EventModal";
-import EventDetailModal from "../components/event/EventDetailModal";
-import EventExpenseModal from "../components/event/EventExpenseModal";
 
-export default function EventsScreen() {
+export default function EventsScreen({ navigation }) {
   const {
     state,
     loadEvents,
     addEvent,
     updateEvent,
-    addEventExpense,
-    deleteEventExpense,
   } = useAppState();
   const { token } = useAuth();
   const events = state.events;
@@ -44,11 +40,6 @@ export default function EventsScreen() {
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventModalMode, setEventModalMode] = useState("add");
   const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [detailEvent, setDetailEvent] = useState(null);
-
-  const [expenseModalVisible, setExpenseModalVisible] = useState(false);
 
   const filteredEvents = events
     .filter((event) => {
@@ -73,15 +64,8 @@ export default function EventsScreen() {
     setEventModalVisible(true);
   };
 
-  const openDetailModal = (event) => {
-    setDetailEvent(event);
-    setDetailModalVisible(true);
-  };
-
-  // Sync detailEvent with context state
-  const getDetailEvent = () => {
-    if (!detailEvent) return null;
-    return events.find((e) => e.id === detailEvent.id) || detailEvent;
+  const openEventDetail = (event) => {
+    navigation.navigate("EventDetail", { eventId: event.id });
   };
 
   const handleSaveEvent = async (eventData) => {
@@ -90,21 +74,6 @@ export default function EventsScreen() {
     } else {
       await updateEvent(token, eventData.id, eventData);
     }
-  };
-
-  const handleEditFromDetail = () => {
-    setSelectedEvent(getDetailEvent());
-    setEventModalMode("edit");
-    setDetailModalVisible(false);
-    setEventModalVisible(true);
-  };
-
-  const handleAddExpense = async (expense) => {
-    await addEventExpense(token, detailEvent.id, expense);
-  };
-
-  const handleDeleteExpense = async (eventId, expenseId) => {
-    await deleteEventExpense(token, eventId, expenseId);
   };
 
   return (
@@ -155,7 +124,7 @@ export default function EventsScreen() {
               key={event.id}
               event={event}
               isLast={index === filteredEvents.length - 1}
-              onPress={() => openDetailModal(event)}
+              onPress={() => openEventDetail(event)}
             />
           ))
         )}
@@ -177,21 +146,6 @@ export default function EventsScreen() {
         onSave={handleSaveEvent}
         event={selectedEvent}
         mode={eventModalMode}
-      />
-
-      <EventDetailModal
-        visible={detailModalVisible}
-        onClose={() => setDetailModalVisible(false)}
-        event={getDetailEvent()}
-        onAddExpense={() => setExpenseModalVisible(true)}
-        onDeleteExpense={handleDeleteExpense}
-        onEdit={handleEditFromDetail}
-      />
-
-      <EventExpenseModal
-        visible={expenseModalVisible}
-        onClose={() => setExpenseModalVisible(false)}
-        onSave={handleAddExpense}
       />
     </SafeAreaView>
   );

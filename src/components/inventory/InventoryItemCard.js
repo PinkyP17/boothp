@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
 
@@ -11,8 +11,15 @@ export default function InventoryItemCard({ item, onPress, onRestock }) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      {/* Top row: name + category badge */}
+      {/* Top row: thumbnail + name + category badge */}
       <View style={styles.topRow}>
+        {item.imageUri ? (
+          <Image source={{ uri: item.imageUri }} style={styles.thumbnail} />
+        ) : (
+          <View style={styles.thumbnailPlaceholder}>
+            <Ionicons name="cube-outline" size={20} color={COLORS.textSecondary} />
+          </View>
+        )}
         <Text style={styles.name} numberOfLines={1}>
           {item.name}
         </Text>
@@ -74,6 +81,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+  },
+  thumbnail: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  thumbnailPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
   name: {
     fontSize: SIZES.fontBody,

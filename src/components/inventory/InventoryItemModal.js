@@ -9,9 +9,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../../constants/theme";
 import { CATEGORIES } from "../../data/mockData";
+import { pickImage, saveImageLocally } from "../../services/imageService";
 
 const editableCategories = CATEGORIES.filter((c) => c !== "All");
 
@@ -21,6 +25,7 @@ const emptyForm = {
   productionCost: "",
   sellingPrice: "",
   stock: "",
+  imageUri: null,
 };
 
 export default function InventoryItemModal({
@@ -44,6 +49,7 @@ export default function InventoryItemModal({
         productionCost: item.productionCost.toString(),
         sellingPrice: item.sellingPrice.toString(),
         stock: item.stock.toString(),
+        imageUri: item.imageUri || null,
       });
     } else if (mode === "restock") {
       setRestockQty("");
@@ -75,9 +81,38 @@ export default function InventoryItemModal({
         productionCost: parseFloat(form.productionCost) || 0,
         sellingPrice: parseFloat(form.sellingPrice) || 0,
         stock: parseInt(form.stock, 10) || 0,
+        imageUri: form.imageUri,
       });
     }
     onClose();
+  };
+
+  const handlePickImage = () => {
+    Alert.alert("Add Photo", "Choose a source", [
+      {
+        text: "Take Photo",
+        onPress: async () => {
+          const uri = await pickImage("camera");
+          if (uri) {
+            const itemId = item?.id || Date.now().toString();
+            const saved = await saveImageLocally(uri, itemId);
+            setForm({ ...form, imageUri: saved });
+          }
+        },
+      },
+      {
+        text: "Choose from Gallery",
+        onPress: async () => {
+          const uri = await pickImage("gallery");
+          if (uri) {
+            const itemId = item?.id || Date.now().toString();
+            const saved = await saveImageLocally(uri, itemId);
+            setForm({ ...form, imageUri: saved });
+          }
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   return (
@@ -124,6 +159,33 @@ export default function InventoryItemModal({
               </>
             ) : (
               <>
+                <TouchableOpacity
+                  style={styles.imagePicker}
+                  onPress={handlePickImage}
+                  activeOpacity={0.7}
+                >
+                  {form.imageUri ? (
+                    <View style={styles.imagePreviewWrapper}>
+                      <Image
+                        source={{ uri: form.imageUri }}
+                        style={styles.imagePreview}
+                      />
+                      <View style={styles.changeOverlay}>
+                        <Text style={styles.changeText}>Change</Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Ionicons
+                        name="camera-outline"
+                        size={32}
+                        color={COLORS.textSecondary}
+                      />
+                      <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
                 <Text style={styles.label}>Item Name</Text>
                 <TextInput
                   style={styles.input}
@@ -272,6 +334,51 @@ const styles = StyleSheet.create({
   },
   categoryPillTextSelected: {
     color: "#FFFFFF",
+  },
+  imagePicker: {
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  imagePreviewWrapper: {
+    position: "relative",
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+  },
+  changeOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingVertical: 4,
+    alignItems: "center",
+  },
+  changeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  imagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: COLORS.textSecondary + "40",
+    borderStyle: "dashed",
+  },
+  imagePlaceholderText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
   noteBox: {
     backgroundColor: COLORS.primary + "10",

@@ -4,6 +4,7 @@ import {
   View,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from "react-native";
 import { COLORS, SIZES } from "../../constants/theme";
 
@@ -34,6 +35,14 @@ export default function POSItemTile({ item, onPress, inCartQty }) {
         </Text>
       </View>
 
+      {item.imageUri && (
+        <Image
+          source={{ uri: item.imageUri }}
+          style={styles.tileImage}
+          resizeMode="cover"
+        />
+      )}
+
       <Text style={styles.name} numberOfLines={2}>
         {item.name}
       </Text>
@@ -51,9 +60,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 100,
+    minHeight: 140,
     borderWidth: 2,
     borderColor: COLORS.posButton + "30",
+    overflow: "hidden",
+  },
+  tileImage: {
+    width: "100%",
+    height: 60,
+    borderRadius: 6,
+    marginBottom: 6,
   },
   disabled: {
     opacity: 0.4,

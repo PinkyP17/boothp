@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useMemo } from "react";
 // events mock data no longer used — loaded from API
 
 import { API_BASE_URL } from "../config/api";
+import { getImageMap, setImageUri } from "../services/imageMapping";
 
 const AppContext = createContext();
 
@@ -134,7 +135,12 @@ export function AppStateProvider({ children }) {
           });
           const data = await res.json();
           if (res.ok) {
-            dispatch({ type: "SET_INVENTORY", payload: data });
+            const imageMap = await getImageMap();
+            const hydrated = data.map((item) => ({
+              ...item,
+              imageUri: imageMap[item.id] || null,
+            }));
+            dispatch({ type: "SET_INVENTORY", payload: hydrated });
           }
         } catch (error) {
           console.error("Failed to load inventory:", error);
@@ -143,17 +149,21 @@ export function AppStateProvider({ children }) {
 
       addInventoryItem: async (token, itemData) => {
         try {
+          const { imageUri, ...apiData } = itemData;
           const res = await fetch(`${API_BASE_URL}/api/v1/inventory`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(itemData),
+            body: JSON.stringify(apiData),
           });
           const data = await res.json();
           if (res.ok) {
-            dispatch({ type: "ADD_TO_INVENTORY", payload: data });
+            if (imageUri) {
+              await setImageUri(data.id, imageUri);
+            }
+            dispatch({ type: "ADD_TO_INVENTORY", payload: { ...data, imageUri: imageUri || null } });
             return { success: true };
           }
           return { success: false, message: data.message, errors: data.errors };
@@ -165,17 +175,21 @@ export function AppStateProvider({ children }) {
 
       updateInventoryItem: async (token, itemId, itemData) => {
         try {
+          const { imageUri, ...apiData } = itemData;
           const res = await fetch(`${API_BASE_URL}/api/v1/inventory/${itemId}`, {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(itemData),
+            body: JSON.stringify(apiData),
           });
           const data = await res.json();
           if (res.ok) {
-            dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
+            if (imageUri) {
+              await setImageUri(itemId, imageUri);
+            }
+            dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: { ...data, imageUri: imageUri || null } });
             return { success: true };
           }
           return { success: false, message: data.message, errors: data.errors };

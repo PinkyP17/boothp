@@ -81,6 +81,7 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
       location: form.location.trim(),
       status: event?.status || "upcoming",
       expenses: event?.expenses || [],
+      notes: event?.notes || null,
     };
     if (form.boothFee) {
       data.boothFee = parseFloat(form.boothFee);

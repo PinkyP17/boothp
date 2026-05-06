@@ -24,4 +24,6 @@ public class EventRequest {
     private String status;
 
     private BigDecimal boothFee;
+
+    private String notes;
 }
