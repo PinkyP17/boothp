@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { getEventStatus } from "../utils/eventStatus";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
@@ -44,6 +45,22 @@ function isSaleInDateRange(saleTimestamp, startDate, endDate) {
   return saleDate >= startDate && saleDate <= endDate;
 }
 
+function formatTime(timestamp) {
+  if (!timestamp) return "";
+  const timePart = timestamp.includes("T") ? timestamp.split("T")[1] : null;
+  if (!timePart) return "";
+  const [hours, minutes] = timePart.split(":");
+  const h = parseInt(hours, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${minutes} ${ampm}`;
+}
+
+function formatSaleItems(sale) {
+  if (!sale.items || sale.items.length === 0) return "Sale";
+  return sale.items.map((si) => `${si.quantity}x ${si.name}`).join(", ");
+}
+
 function groupSalesByDate(sales) {
   const groups = {};
   for (const sale of sales) {
@@ -62,7 +79,7 @@ function groupSalesByDate(sales) {
 
 export default function EventDetailScreen({ navigation, route }) {
   const { eventId } = route.params;
-  const { state, updateEvent, addEventExpense, deleteEventExpense } =
+  const { state, updateEvent, addEventExpense, deleteEventExpense, loadSales } =
     useAppState();
   const { token } = useAuth();
 
@@ -73,14 +90,21 @@ export default function EventDetailScreen({ navigation, route }) {
   const [notes, setNotes] = useState(event?.notes || "");
   const [notesDirty, setNotesDirty] = useState(false);
 
-  // Sync notes when event changes from outside (e.g. after edit modal save)
+  // Load sales and sync notes on focus, close modals on blur
   useFocusEffect(
     useCallback(() => {
+      if (token) {
+        loadSales(token);
+      }
       if (event) {
         setNotes(event.notes || "");
         setNotesDirty(false);
       }
-    }, [event?.id, event?.notes]),
+      return () => {
+        setEditModalVisible(false);
+        setExpenseModalVisible(false);
+      };
+    }, [token, event?.id, event?.notes]),
   );
 
   if (!event) {
@@ -98,7 +122,8 @@ export default function EventDetailScreen({ navigation, route }) {
     );
   }
 
-  const dotColor = STATUS_COLORS[event.status] || COLORS.textSecondary;
+  const status = getEventStatus(event);
+  const dotColor = STATUS_COLORS[status] || COLORS.textSecondary;
   const totalExpenses = event.expenses.reduce(
     (sum, exp) => sum + exp.amount,
     0,
@@ -172,7 +197,7 @@ export default function EventDetailScreen({ navigation, route }) {
             style={[styles.statusBadge, { backgroundColor: dotColor + "15" }]}
           >
             <Text style={[styles.statusText, { color: dotColor }]}>
-              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+              {status.charAt(0).toUpperCase() + status.slice(1)}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -286,20 +311,54 @@ export default function EventDetailScreen({ navigation, route }) {
             </View>
           ) : (
             salesByDate.map((group) => (
-              <View key={group.date} style={styles.salesRow}>
-                <View style={styles.salesInfo}>
-                  <Text style={styles.salesDate}>
-                    {formatDate(group.date)}
-                  </Text>
+              <View key={group.date} style={styles.salesDateGroup}>
+                <Text style={styles.salesDateHeader}>
+                  {formatDate(group.date)}
+                </Text>
+                {group.sales.map((sale, idx) => (
+                  <View
+                    key={sale.id || idx}
+                    style={[
+                      styles.saleItem,
+                      idx < group.sales.length - 1 && styles.saleItemBorder,
+                    ]}
+                  >
+                    <View style={styles.salesInfo}>
+                      <View style={styles.saleTimeRow}>
+                        <Text style={styles.saleTime}>
+                          {formatTime(sale.timestamp)}
+                        </Text>
+                        {sale.paymentMethod ? (
+                          <View style={[styles.paymentPill, {
+                            backgroundColor: sale.paymentMethod === "cash" ? "#FF950015" : "#4A90D915",
+                          }]}>
+                            <Text style={[styles.paymentPillText, {
+                              color: sale.paymentMethod === "cash" ? "#FF9500" : COLORS.primary,
+                            }]}>
+                              {sale.paymentMethod === "cash" ? "Cash" : "QR"}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={styles.saleItems} numberOfLines={2}>
+                        {formatSaleItems(sale)}
+                      </Text>
+                    </View>
+                    <Text style={styles.salesAmount}>
+                      ${sale.total.toFixed(2)}
+                    </Text>
+                  </View>
+                ))}
+                <View style={styles.salesDayTotal}>
                   <Text style={styles.salesMeta}>
                     {group.sales.length} sale{group.sales.length !== 1 ? "s" : ""}
                     {" · "}
                     {group.totalItems} item{group.totalItems !== 1 ? "s" : ""}
                   </Text>
+                  <Text style={styles.salesAmount}>
+                    ${group.totalAmount.toFixed(2)}
+                  </Text>
                 </View>
-                <Text style={styles.salesAmount}>
-                  ${group.totalAmount.toFixed(2)}
-                </Text>
               </View>
             ))
           )}
@@ -484,23 +543,66 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.textPrimary,
   },
-  salesRow: {
+  salesDateGroup: {
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  salesDateHeader: {
+    fontSize: SIZES.fontCaption,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  saleItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  saleItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.background,
+  },
+  saleTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  saleTime: {
+    fontSize: SIZES.fontCaption,
+    color: COLORS.textSecondary,
+  },
+  paymentPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    borderRadius: 10,
+  },
+  paymentPillText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  saleItems: {
+    fontSize: SIZES.fontBody,
+    color: COLORS.textPrimary,
   },
   salesInfo: {
     flex: 1,
+    marginRight: 12,
   },
-  salesDate: {
-    fontSize: SIZES.fontBody,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-    marginBottom: 2,
+  salesDayTotal: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.background,
   },
   salesMeta: {
     fontSize: SIZES.fontCaption,

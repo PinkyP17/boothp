@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../constants/theme";
 import { EVENT_STATUSES } from "../data/mockData";
@@ -40,6 +41,15 @@ export default function EventsScreen({ navigation }) {
   const [eventModalVisible, setEventModalVisible] = useState(false);
   const [eventModalMode, setEventModalMode] = useState("add");
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Close modal when navigating away
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setEventModalVisible(false);
+      };
+    }, []),
+  );
 
   const filteredEvents = events
     .filter((event) => {

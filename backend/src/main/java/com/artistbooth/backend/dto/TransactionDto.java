@@ -15,4 +15,5 @@ public class TransactionDto {
     private BigDecimal amount;
     private LocalDateTime date;
     private String eventName;
+    private String paymentMethod;
 }

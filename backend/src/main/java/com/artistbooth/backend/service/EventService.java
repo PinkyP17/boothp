@@ -1,6 +1,7 @@
 package com.artistbooth.backend.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -26,7 +27,20 @@ public class EventService {
     private final UserRepository userRepository;
 
     public List<Event> getAll(Long userId) {
-        return eventRepository.findByUserIdOrderByDateDesc(userId);
+        List<Event> events = eventRepository.findByUserIdOrderByDateDesc(userId);
+        events.forEach(this::computeStatus);
+        return events;
+    }
+
+    private void computeStatus(Event event) {
+        LocalDate today = LocalDate.now();
+        if (today.isBefore(event.getDate())) {
+            event.setStatus("upcoming");
+        } else if (today.isAfter(event.getEndDate())) {
+            event.setStatus("past");
+        } else {
+            event.setStatus("active");
+        }
     }
 
     public Event create(Long userId, EventRequest req) {
@@ -50,7 +64,9 @@ public class EventService {
             event.getExpenses().add(boothExpense);
         }
 
-        return eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        computeStatus(saved);
+        return saved;
     }
 
     public Event update(Long userId, Long eventId, EventRequest req) {
@@ -84,7 +100,9 @@ public class EventService {
             event.getExpenses().remove(existingBoothFee);
         }
 
-        return eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        computeStatus(saved);
+        return saved;
     }
 
     public Event addExpense(Long userId, Long eventId, EventExpenseRequest req) {
@@ -98,7 +116,9 @@ public class EventService {
 
         event.getExpenses().add(expense);
 
-        return eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        computeStatus(saved);
+        return saved;
     }
 
     public void deleteExpense(Long userId, Long eventId, Long expenseId) {

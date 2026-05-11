@@ -24,6 +24,11 @@ export default function TabNavigator() {
       <Tab.Screen
         name="Home"
         component={HomeStack}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("Home", { screen: "Dashboard" });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -54,6 +59,11 @@ export default function TabNavigator() {
       <Tab.Screen
         name="Events"
         component={EventsStack}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("Events", { screen: "EventsList" });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size} color={color} />
@@ -63,6 +73,11 @@ export default function TabNavigator() {
       <Tab.Screen
         name="More"
         component={MoreStack}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("More", { screen: "MoreMenu" });
+          },
+        })}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="ellipsis-horizontal" size={size} color={color} />

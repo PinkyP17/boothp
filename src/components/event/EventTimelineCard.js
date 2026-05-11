@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
+import { getEventStatus } from "../../utils/eventStatus";
 
 const STATUS_COLORS = {
   upcoming: COLORS.primary,
@@ -32,7 +33,9 @@ function formatDateRange(date, endDate) {
 }
 
 export default function EventTimelineCard({ event, onPress, isLast }) {
-  const dotColor = STATUS_COLORS[event.status] || COLORS.textSecondary;
+  const status = getEventStatus(event);
+  const dotColor = STATUS_COLORS[status] || COLORS.textSecondary;
+  const isActive = status === "active";
   const totalExpenses = event.expenses.reduce(
     (sum, exp) => sum + exp.amount,
     0,
@@ -53,7 +56,7 @@ export default function EventTimelineCard({ event, onPress, isLast }) {
       </View>
 
       {/* Card content */}
-      <View style={[styles.card, CARD_SHADOW]}>
+      <View style={[styles.card, CARD_SHADOW, isActive && styles.activeCard]}>
         <View style={styles.topRow}>
           <Text style={styles.name} numberOfLines={1}>
             {event.name}
@@ -62,7 +65,7 @@ export default function EventTimelineCard({ event, onPress, isLast }) {
             style={[styles.statusBadge, { backgroundColor: dotColor + "15" }]}
           >
             <Text style={[styles.statusText, { color: dotColor }]}>
-              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+              {status.charAt(0).toUpperCase() + status.slice(1)}
             </Text>
           </View>
         </View>
@@ -114,6 +117,10 @@ const styles = StyleSheet.create({
     padding: SIZES.padding,
     marginBottom: 12,
     marginLeft: 8,
+  },
+  activeCard: {
+    borderWidth: 1.5,
+    borderColor: COLORS.income + "50",
   },
   topRow: {
     flexDirection: "row",

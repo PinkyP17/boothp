@@ -1,6 +1,7 @@
 package com.artistbooth.backend.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -40,24 +41,35 @@ public class DashboardService {
                 .map(Sale::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // 2. Events → event expenses (load early so we can match sales to events)
+        List<Event> events = eventRepository.findByUserIdOrderByDateDesc(userId);
+
         List<TransactionDto> transactions = new ArrayList<>();
 
         for (Sale sale : sales) {
             String description = sale.getItems().stream()
                     .map(si -> si.getQuantity() + "x " + si.getName())
                     .collect(Collectors.joining(", "));
+
+            // Match sale to event by date range
+            LocalDate saleDate = sale.getTimestamp().toLocalDate();
+            String matchedEventName = events.stream()
+                    .filter(e -> !saleDate.isBefore(e.getDate()) && !saleDate.isAfter(e.getEndDate()))
+                    .map(Event::getName)
+                    .findFirst()
+                    .orElse(null);
+
             transactions.add(TransactionDto.builder()
                     .id(sale.getId())
                     .type("income")
                     .description(description)
                     .amount(sale.getTotal())
                     .date(sale.getTimestamp())
-                    .eventName(null)
+                    .eventName(matchedEventName)
+                    .paymentMethod(sale.getPaymentMethod())
                     .build());
         }
 
-        // 2. Events → event expenses
-        List<Event> events = eventRepository.findByUserIdOrderByDateDesc(userId);
         BigDecimal eventExpensesTotal = BigDecimal.ZERO;
 
         for (Event event : events) {
@@ -100,9 +112,16 @@ public class DashboardService {
         // 5. Upcoming events
         BigDecimal totalExpenses = eventExpensesTotal.add(restockExpensesTotal);
 
+        LocalDate today = LocalDate.now();
         List<EventSummaryDto> upcomingEvents = events.stream()
-                .filter(e -> !"past".equals(e.getStatus()))
+                .filter(e -> !today.isAfter(e.getEndDate()))
                 .map(e -> {
+                    String computedStatus;
+                    if (today.isBefore(e.getDate())) {
+                        computedStatus = "upcoming";
+                    } else {
+                        computedStatus = "active";
+                    }
                     BigDecimal evtExpenses = e.getExpenses().stream()
                             .map(EventExpense::getAmount)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -112,7 +131,7 @@ public class DashboardService {
                             .date(e.getDate())
                             .endDate(e.getEndDate())
                             .location(e.getLocation())
-                            .status(e.getStatus())
+                            .status(computedStatus)
                             .totalExpenses(evtExpenses)
                             .build();
                 })
