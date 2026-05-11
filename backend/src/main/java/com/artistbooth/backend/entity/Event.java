@@ -47,6 +47,9 @@ public class Event {
     @Column(nullable = false)
     private String status;
 
+    @Column(length = 3)
+    private String currency;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 
@@ -117,6 +120,14 @@ public class Event {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
     public String getNotes() {

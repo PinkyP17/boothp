@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
 import { getEventStatus } from "../../utils/eventStatus";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 const STATUS_COLORS = {
   upcoming: COLORS.primary,
@@ -79,7 +80,7 @@ export default function EventTimelineCard({ event, onPress, isLast }) {
           <View style={styles.expenseRow}>
             <Text style={styles.expenseLabel}>Expenses:</Text>
             <Text style={styles.expenseAmount}>
-              ${totalExpenses.toFixed(2)}
+              {formatCurrency(totalExpenses, event.currency || "MYR")}
             </Text>
           </View>
         )}

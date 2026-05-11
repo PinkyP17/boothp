@@ -13,6 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
 import { getEventStatus } from "../utils/eventStatus";
+import { formatCurrency } from "../utils/formatCurrency";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
@@ -124,6 +125,7 @@ export default function EventDetailScreen({ navigation, route }) {
 
   const status = getEventStatus(event);
   const dotColor = STATUS_COLORS[status] || COLORS.textSecondary;
+  const eventCurrency = event.currency || "MYR";
   const totalExpenses = event.expenses.reduce(
     (sum, exp) => sum + exp.amount,
     0,
@@ -164,6 +166,7 @@ export default function EventDetailScreen({ navigation, route }) {
       endDate: event.endDate,
       location: event.location,
       status: event.status,
+      currency: event.currency,
       notes: notes.trim(),
     });
     setNotesDirty(false);
@@ -224,11 +227,12 @@ export default function EventDetailScreen({ navigation, route }) {
 
         {/* Financial Summary */}
         <View style={styles.cardsRow}>
-          <SummaryCard title="Sales" amount={totalSales} color={COLORS.income} />
+          <SummaryCard title="Sales" amount={totalSales} color={COLORS.income} currencyCode={eventCurrency} />
           <SummaryCard
             title="Expenses"
             amount={totalExpenses}
             color={COLORS.expense}
+            currencyCode={eventCurrency}
           />
         </View>
         <View style={[styles.netCard, CARD_SHADOW]}>
@@ -239,7 +243,7 @@ export default function EventDetailScreen({ navigation, route }) {
               { color: netProfit >= 0 ? COLORS.income : COLORS.expense },
             ]}
           >
-            {netProfit >= 0 ? "+" : ""}${netProfit.toFixed(2)}
+            {netProfit >= 0 ? "+" : "-"}{formatCurrency(Math.abs(netProfit), eventCurrency)}
           </Text>
         </View>
 
@@ -273,7 +277,7 @@ export default function EventDetailScreen({ navigation, route }) {
                     {expense.category}
                   </Text>
                   <Text style={styles.expenseAmount}>
-                    ${expense.amount.toFixed(2)}
+                    {formatCurrency(expense.amount, eventCurrency)}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -345,7 +349,7 @@ export default function EventDetailScreen({ navigation, route }) {
                       </Text>
                     </View>
                     <Text style={styles.salesAmount}>
-                      ${sale.total.toFixed(2)}
+                      {formatCurrency(sale.total, eventCurrency)}
                     </Text>
                   </View>
                 ))}
@@ -356,7 +360,7 @@ export default function EventDetailScreen({ navigation, route }) {
                     {group.totalItems} item{group.totalItems !== 1 ? "s" : ""}
                   </Text>
                   <Text style={styles.salesAmount}>
-                    ${group.totalAmount.toFixed(2)}
+                    {formatCurrency(group.totalAmount, eventCurrency)}
                   </Text>
                 </View>
               </View>

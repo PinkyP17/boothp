@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../../constants/theme";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 const STATUS_COLORS = {
   upcoming: COLORS.primary,
@@ -92,7 +93,7 @@ export default function EventDetailModal({
             <View style={styles.expenseHeader}>
               <Text style={styles.sectionTitle}>Expenses</Text>
               <Text style={styles.totalAmount}>
-                ${totalExpenses.toFixed(2)}
+                {formatCurrency(totalExpenses, event.currency || "MYR")}
               </Text>
             </View>
 
@@ -113,7 +114,7 @@ export default function EventDetailModal({
                       {expense.category}
                     </Text>
                     <Text style={styles.expenseAmount}>
-                      ${expense.amount.toFixed(2)}
+                      {formatCurrency(expense.amount, event.currency || "MYR")}
                     </Text>
                   </View>
                   <TouchableOpacity

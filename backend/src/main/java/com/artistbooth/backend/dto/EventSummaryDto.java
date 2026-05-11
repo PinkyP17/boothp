@@ -16,4 +16,5 @@ public class EventSummaryDto {
     private String location;
     private String status;
     private BigDecimal totalExpenses;
+    private String currency;
 }

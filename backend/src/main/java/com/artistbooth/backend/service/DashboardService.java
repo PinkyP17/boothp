@@ -133,6 +133,7 @@ public class DashboardService {
                             .location(e.getLocation())
                             .status(computedStatus)
                             .totalExpenses(evtExpenses)
+                            .currency(e.getCurrency())
                             .build();
                 })
                 .collect(Collectors.toList());

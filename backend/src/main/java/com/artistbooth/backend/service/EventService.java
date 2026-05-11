@@ -54,6 +54,7 @@ public class EventService {
         event.setEndDate(req.getEndDate());
         event.setLocation(req.getLocation());
         event.setStatus(req.getStatus());
+        event.setCurrency(req.getCurrency() != null ? req.getCurrency() : "MYR");
         event.setNotes(req.getNotes());
 
         if (req.getBoothFee() != null && req.getBoothFee().compareTo(BigDecimal.ZERO) > 0) {
@@ -78,6 +79,7 @@ public class EventService {
         event.setEndDate(req.getEndDate());
         event.setLocation(req.getLocation());
         event.setStatus(req.getStatus());
+        event.setCurrency(req.getCurrency() != null ? req.getCurrency() : event.getCurrency());
         event.setNotes(req.getNotes());
 
         // Update booth fee expense

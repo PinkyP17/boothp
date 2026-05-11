@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export default function SummaryCard({
   title,
@@ -7,10 +8,17 @@ export default function SummaryCard({
   color,
   fullWidth,
   format = "currency",
+  currencyCode,
   onPress,
 }) {
-  const displayAmount =
-    format === "number" ? `${amount}` : `$${amount.toFixed(2)}`;
+  let displayAmount;
+  if (format === "number") {
+    displayAmount = `${amount}`;
+  } else if (currencyCode) {
+    displayAmount = formatCurrency(amount, currencyCode);
+  } else {
+    displayAmount = `$${amount.toFixed(2)}`;
+  }
 
   const Wrapper = onPress ? TouchableOpacity : View;
   const wrapperProps = onPress ? { onPress, activeOpacity: 0.7 } : {};

@@ -7,18 +7,25 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "../../constants/theme";
+import {
+  QUICK_PICK_CURRENCIES,
+  ALL_CURRENCIES,
+  DEFAULT_CURRENCY,
+} from "../../constants/currencies";
 
 const emptyForm = {
   name: "",
   date: null,
   endDate: null,
   location: "",
+  currency: DEFAULT_CURRENCY,
   boothFee: "",
 };
 
@@ -39,6 +46,8 @@ function parseDate(dateStr) {
 export default function EventModal({ visible, onClose, onSave, event, mode }) {
   const [form, setForm] = useState(emptyForm);
   const [showDatePicker, setShowDatePicker] = useState(null); // "date" or "endDate"
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
 
   useEffect(() => {
     if (mode === "add") {
@@ -52,6 +61,7 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
         date: parseDate(event.date),
         endDate: parseDate(event.endDate),
         location: event.location,
+        currency: event.currency || DEFAULT_CURRENCY,
         boothFee: existingBoothFee ? String(existingBoothFee.amount) : "",
       });
     }
@@ -80,6 +90,7 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
       endDate: formatDate(form.endDate || form.date),
       location: form.location.trim(),
       status: event?.status || "upcoming",
+      currency: form.currency,
       expenses: event?.expenses || [],
       notes: event?.notes || null,
     };
@@ -174,6 +185,38 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
               placeholderTextColor={COLORS.textSecondary}
             />
 
+            <Text style={styles.label}>Currency</Text>
+            <View style={styles.currencyRow}>
+              {QUICK_PICK_CURRENCIES.map((c) => (
+                <TouchableOpacity
+                  key={c.code}
+                  style={[
+                    styles.currencyPill,
+                    form.currency === c.code && styles.currencyPillSelected,
+                  ]}
+                  onPress={() => setForm({ ...form, currency: c.code })}
+                >
+                  <Text
+                    style={[
+                      styles.currencyPillText,
+                      form.currency === c.code && styles.currencyPillTextSelected,
+                    ]}
+                  >
+                    {c.code}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={styles.currencyMoreButton}
+                onPress={() => {
+                  setCurrencySearch("");
+                  setCurrencyModalVisible(true);
+                }}
+              >
+                <Text style={styles.currencyMoreText}>More...</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.label}>Booth Fee (optional)</Text>
             <TextInput
               style={styles.input}
@@ -195,6 +238,55 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Currency search modal */}
+      <Modal visible={currencyModalVisible} animationType="fade" transparent>
+        <View style={styles.currencyOverlay}>
+          <View style={styles.currencyModal}>
+            <View style={styles.currencyModalHeader}>
+              <Text style={styles.currencyModalTitle}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setCurrencyModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.currencySearchInput}
+              value={currencySearch}
+              onChangeText={setCurrencySearch}
+              placeholder="Search currencies..."
+              placeholderTextColor={COLORS.textSecondary}
+              autoFocus
+            />
+            <FlatList
+              data={ALL_CURRENCIES.filter(
+                (c) =>
+                  c.code.toLowerCase().includes(currencySearch.toLowerCase()) ||
+                  c.name.toLowerCase().includes(currencySearch.toLowerCase()),
+              )}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.currencyListItem,
+                    form.currency === item.code && styles.currencyListItemSelected,
+                  ]}
+                  onPress={() => {
+                    setForm({ ...form, currency: item.code });
+                    setCurrencyModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.currencyListCode}>{item.code}</Text>
+                  <Text style={styles.currencyListName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.currencyListSymbol}>{item.symbol}</Text>
+                </TouchableOpacity>
+              )}
+              style={styles.currencyList}
+            />
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -251,6 +343,100 @@ const styles = StyleSheet.create({
   },
   datePlaceholder: {
     color: COLORS.textSecondary,
+  },
+  currencyRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  currencyPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: COLORS.background,
+  },
+  currencyPillSelected: {
+    backgroundColor: COLORS.primary,
+  },
+  currencyPillText: {
+    fontSize: SIZES.fontCaption,
+    color: COLORS.textSecondary,
+    fontWeight: "600",
+  },
+  currencyPillTextSelected: {
+    color: "#FFFFFF",
+  },
+  currencyMoreButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  currencyMoreText: {
+    fontSize: SIZES.fontCaption,
+    color: COLORS.primary,
+    fontWeight: "500",
+  },
+  currencyOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  currencyModal: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: "60%",
+  },
+  currencyModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  currencyModalTitle: {
+    fontSize: SIZES.fontSubtitle,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+  currencySearchInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: SIZES.fontBody,
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  currencyList: {
+    flexGrow: 0,
+  },
+  currencyListItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  currencyListItemSelected: {
+    backgroundColor: COLORS.primary + "15",
+  },
+  currencyListCode: {
+    fontSize: SIZES.fontBody,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    width: 48,
+  },
+  currencyListName: {
+    fontSize: SIZES.fontBody,
+    color: COLORS.textSecondary,
+    flex: 1,
+    marginRight: 8,
+  },
+  currencyListSymbol: {
+    fontSize: SIZES.fontBody,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
   },
   footer: {
     flexDirection: "row",
