@@ -11,10 +11,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
 import { EVENT_STATUSES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
@@ -32,6 +33,7 @@ export default function EventsScreen({ navigation }) {
   } = useAppState();
   const { token } = useAuth();
   const { showToast } = useToast();
+  const { colors: C } = useTheme();
   const events = state.events;
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function EventsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
       <ConnectivityBanner />
       <ScrollView
         style={styles.container}
@@ -110,27 +112,29 @@ export default function EventsScreen({ navigation }) {
               await loadEvents(token);
               setRefreshing(false);
             }}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={[C.primary]}
+            tintColor={C.primary}
           />
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Events</Text>
-          <Text style={styles.subtitle}>{events.length} events</Text>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Events</Text>
+          <Text style={[styles.subtitle, { color: C.textSecondary }]}>
+            {events.length} events
+          </Text>
         </View>
 
         <View style={styles.cardsRow}>
           <SummaryCard
             title="Total Events"
             amount={events.length}
-            color={COLORS.primary}
+            color={C.primary}
             format="number"
           />
           <SummaryCard
             title="Total Expenses"
             amount={totalExpenses}
-            color={COLORS.expense}
+            color={C.expense}
           />
         </View>
 
@@ -147,16 +151,18 @@ export default function EventsScreen({ navigation }) {
 
         {state.isLoading && events.length === 0 ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
+            <ActivityIndicator size="large" color={C.primary} />
           </View>
         ) : filteredEvents.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
               name="calendar-outline"
               size={48}
-              color={COLORS.textSecondary}
+              color={C.textSecondary}
             />
-            <Text style={styles.emptyText}>No events found</Text>
+            <Text style={[styles.emptyText, { color: C.textSecondary }]}>
+              No events found
+            </Text>
           </View>
         ) : (
           filteredEvents.map((event, index) => (
@@ -173,7 +179,7 @@ export default function EventsScreen({ navigation }) {
       </ScrollView>
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: C.primary }]}
         onPress={openAddModal}
         activeOpacity={0.8}
       >
@@ -194,7 +200,6 @@ export default function EventsScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -207,11 +212,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 4,
   },
   cardsRow: {
@@ -225,7 +228,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 12,
   },
   bottomSpacer: {
@@ -238,7 +240,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,

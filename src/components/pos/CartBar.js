@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function CartBar({
   itemCount,
@@ -7,22 +8,31 @@ export default function CartBar({
   onPressPay,
   onPressExpand,
 }) {
+  const { colors: C } = useTheme();
+
   if (itemCount === 0) return null;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: C.card, borderTopColor: C.background },
+      ]}
+    >
       <TouchableOpacity
         style={styles.infoSection}
         onPress={onPressExpand}
         activeOpacity={0.7}
       >
-        <Text style={styles.itemCount}>
+        <Text style={[styles.itemCount, { color: C.textSecondary }]}>
           {itemCount} item{itemCount !== 1 ? "s" : ""}
         </Text>
-        <Text style={styles.total}>${total.toFixed(2)}</Text>
+        <Text style={[styles.total, { color: C.textPrimary }]}>
+          ${total.toFixed(2)}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.payButton}
+        style={[styles.payButton, { backgroundColor: C.income }]}
         onPress={onPressPay}
         activeOpacity={0.8}
       >
@@ -40,11 +50,9 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.card,
     paddingHorizontal: SIZES.padding,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.background,
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
@@ -60,16 +68,13 @@ const styles = StyleSheet.create({
   },
   itemCount: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "500",
   },
   total: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   payButton: {
-    backgroundColor: COLORS.income,
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: 10,

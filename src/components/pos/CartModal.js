@@ -11,7 +11,8 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function CartModal({
   visible,
@@ -24,6 +25,8 @@ export default function CartModal({
   discount,
   onPressPay,
 }) {
+  const { colors: C } = useTheme();
+
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [editPriceValue, setEditPriceValue] = useState("");
   const [discountInput, setDiscountInput] = useState("");
@@ -76,39 +79,39 @@ export default function CartModal({
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Cart</Text>
+            <Text style={[styles.title, { color: C.textPrimary }]}>Cart</Text>
 
             {cart.map((item) => (
-              <View key={item.itemId} style={styles.cartItem}>
+              <View
+                key={item.itemId}
+                style={[styles.cartItem, { backgroundColor: C.background }]}
+              >
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemName} numberOfLines={1}>
+                  <Text
+                    style={[styles.itemName, { color: C.textPrimary }]}
+                    numberOfLines={1}
+                  >
                     {item.name}
                   </Text>
 
                   {/* Quantity controls */}
                   <View style={styles.qtyRow}>
                     <TouchableOpacity
-                      style={styles.qtyButton}
+                      style={[styles.qtyButton, { backgroundColor: C.card }]}
                       onPress={() => onUpdateQty(item.itemId, -1)}
                     >
-                      <Ionicons
-                        name="remove"
-                        size={16}
-                        color={COLORS.textPrimary}
-                      />
+                      <Ionicons name="remove" size={16} color={C.textPrimary} />
                     </TouchableOpacity>
-                    <Text style={styles.qtyText}>{item.quantity}</Text>
+                    <Text style={[styles.qtyText, { color: C.textPrimary }]}>
+                      {item.quantity}
+                    </Text>
                     <TouchableOpacity
-                      style={styles.qtyButton}
+                      style={[styles.qtyButton, { backgroundColor: C.card }]}
                       onPress={() => onUpdateQty(item.itemId, 1)}
                     >
-                      <Ionicons
-                        name="add"
-                        size={16}
-                        color={COLORS.textPrimary}
-                      />
+                      <Ionicons name="add" size={16} color={C.textPrimary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -117,7 +120,10 @@ export default function CartModal({
                   {/* Price (tappable to edit) */}
                   {editingPriceId === item.itemId ? (
                     <TextInput
-                      style={styles.priceInput}
+                      style={[
+                        styles.priceInput,
+                        { backgroundColor: C.card, color: C.posButton },
+                      ]}
                       value={editPriceValue}
                       onChangeText={setEditPriceValue}
                       keyboardType="decimal-pad"
@@ -127,11 +133,16 @@ export default function CartModal({
                     />
                   ) : (
                     <TouchableOpacity onPress={() => startEditingPrice(item)}>
-                      <Text style={styles.price}>
+                      <Text style={[styles.price, { color: C.posButton }]}>
                         ${item.unitPrice.toFixed(2)}
                       </Text>
                       {item.unitPrice !== item.originalPrice && (
-                        <Text style={styles.originalPrice}>
+                        <Text
+                          style={[
+                            styles.originalPrice,
+                            { color: C.textSecondary },
+                          ]}
+                        >
                           ${item.originalPrice.toFixed(2)}
                         </Text>
                       )}
@@ -147,7 +158,7 @@ export default function CartModal({
                     <Ionicons
                       name="close-circle"
                       size={20}
-                      color={COLORS.expense}
+                      color={C.expense}
                     />
                   </TouchableOpacity>
                 </View>
@@ -156,10 +167,15 @@ export default function CartModal({
 
             {/* Discount Section */}
             <View style={styles.discountSection}>
-              <Text style={styles.discountLabel}>Discount</Text>
+              <Text style={[styles.discountLabel, { color: C.textSecondary }]}>
+                Discount
+              </Text>
               <View style={styles.discountRow}>
                 <TouchableOpacity
-                  style={styles.discountToggle}
+                  style={[
+                    styles.discountToggle,
+                    { backgroundColor: C.primary },
+                  ]}
                   onPress={toggleDiscountType}
                 >
                   <Text style={styles.discountToggleText}>
@@ -167,43 +183,79 @@ export default function CartModal({
                   </Text>
                 </TouchableOpacity>
                 <TextInput
-                  style={styles.discountInput}
+                  style={[
+                    styles.discountInput,
+                    { backgroundColor: C.background, color: C.textPrimary },
+                  ]}
                   value={discountInput}
                   onChangeText={handleDiscountChange}
                   keyboardType="decimal-pad"
                   placeholder="0"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
               </View>
             </View>
 
             {/* Totals */}
-            <View style={styles.totalsSection}>
+            <View
+              style={[
+                styles.totalsSection,
+                { borderTopColor: C.background },
+              ]}
+            >
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Subtotal</Text>
-                <Text style={styles.totalValue}>${subtotal.toFixed(2)}</Text>
+                <Text style={[styles.totalLabel, { color: C.textSecondary }]}>
+                  Subtotal
+                </Text>
+                <Text style={[styles.totalValue, { color: C.textPrimary }]}>
+                  ${subtotal.toFixed(2)}
+                </Text>
               </View>
               {discountAmount > 0 && (
                 <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Discount</Text>
-                  <Text style={[styles.totalValue, { color: COLORS.income }]}>
+                  <Text
+                    style={[styles.totalLabel, { color: C.textSecondary }]}
+                  >
+                    Discount
+                  </Text>
+                  <Text style={[styles.totalValue, { color: C.income }]}>
                     -${discountAmount.toFixed(2)}
                   </Text>
                 </View>
               )}
-              <View style={[styles.totalRow, styles.grandTotalRow]}>
-                <Text style={styles.grandTotalLabel}>Total</Text>
-                <Text style={styles.grandTotalValue}>${total.toFixed(2)}</Text>
+              <View
+                style={[
+                  styles.totalRow,
+                  styles.grandTotalRow,
+                  { borderTopColor: C.background },
+                ]}
+              >
+                <Text style={[styles.grandTotalLabel, { color: C.textPrimary }]}>
+                  Total
+                </Text>
+                <Text
+                  style={[styles.grandTotalValue, { color: C.textPrimary }]}
+                >
+                  ${total.toFixed(2)}
+                </Text>
               </View>
             </View>
           </ScrollView>
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Close</Text>
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: C.background }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelText, { color: C.textSecondary }]}>
+                Close
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.payButton} onPress={onPressPay}>
+            <TouchableOpacity
+              style={[styles.payButton, { backgroundColor: C.income }]}
+              onPress={onPressPay}
+            >
               <Text style={styles.payText}>Pay ${total.toFixed(2)}</Text>
             </TouchableOpacity>
           </View>
@@ -220,7 +272,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: SIZES.padding,
@@ -231,14 +282,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 16,
   },
   cartItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -250,7 +299,6 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: SIZES.fontBody,
     fontWeight: "500",
-    color: COLORS.textPrimary,
     marginBottom: 6,
   },
   qtyRow: {
@@ -262,14 +310,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.card,
     alignItems: "center",
     justifyContent: "center",
   },
   qtyText: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     minWidth: 20,
     textAlign: "center",
   },
@@ -280,23 +326,19 @@ const styles = StyleSheet.create({
   price: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.posButton,
     textAlign: "right",
   },
   originalPrice: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textDecorationLine: "line-through",
     textAlign: "right",
   },
   priceInput: {
-    backgroundColor: COLORS.card,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.posButton,
     textAlign: "right",
     minWidth: 70,
   },
@@ -309,7 +351,6 @@ const styles = StyleSheet.create({
   },
   discountLabel: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -323,7 +364,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -334,16 +374,13 @@ const styles = StyleSheet.create({
   },
   discountInput: {
     flex: 1,
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   totalsSection: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.background,
     paddingTop: 12,
   },
   totalRow: {
@@ -353,28 +390,23 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   totalValue: {
     fontSize: SIZES.fontBody,
     fontWeight: "500",
-    color: COLORS.textPrimary,
   },
   grandTotalRow: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.background,
     paddingTop: 8,
     marginTop: 4,
   },
   grandTotalLabel: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   grandTotalValue: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   footer: {
     flexDirection: "row",
@@ -385,19 +417,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
     alignItems: "center",
   },
   cancelText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
   payButton: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.income,
     alignItems: "center",
   },
   payText: {

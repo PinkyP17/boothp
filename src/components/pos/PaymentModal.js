@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { StyleSheet, Text, View, Modal, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function PaymentModal({ visible, total, onClose, onConfirm }) {
+  const { colors: C } = useTheme();
   const [method, setMethod] = useState(null);
 
   const handleConfirm = () => {
@@ -15,33 +17,42 @@ export default function PaymentModal({ visible, total, onClose, onConfirm }) {
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>Payment</Text>
+        <View style={[styles.modal, { backgroundColor: C.card }]}>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Payment</Text>
 
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalAmount}>${total.toFixed(2)}</Text>
+          <Text style={[styles.totalLabel, { color: C.textSecondary }]}>
+            Total
+          </Text>
+          <Text style={[styles.totalAmount, { color: C.textPrimary }]}>
+            ${total.toFixed(2)}
+          </Text>
 
           {/* Payment method buttons */}
-          <Text style={styles.methodLabel}>Payment Method</Text>
+          <Text style={[styles.methodLabel, { color: C.textSecondary }]}>
+            Payment Method
+          </Text>
           <View style={styles.methodRow}>
             <TouchableOpacity
               style={[
                 styles.methodButton,
-                method === "cash" && styles.methodSelected,
+                { backgroundColor: C.background },
+                method === "cash" && {
+                  borderColor: C.primary,
+                  backgroundColor: C.primary + "10",
+                },
               ]}
               onPress={() => setMethod("cash")}
             >
               <Ionicons
                 name="cash-outline"
                 size={32}
-                color={
-                  method === "cash" ? COLORS.primary : COLORS.textSecondary
-                }
+                color={method === "cash" ? C.primary : C.textSecondary}
               />
               <Text
                 style={[
                   styles.methodText,
-                  method === "cash" && styles.methodTextSelected,
+                  { color: C.textSecondary },
+                  method === "cash" && { color: C.primary },
                 ]}
               >
                 Cash
@@ -51,19 +62,24 @@ export default function PaymentModal({ visible, total, onClose, onConfirm }) {
             <TouchableOpacity
               style={[
                 styles.methodButton,
-                method === "qr" && styles.methodSelected,
+                { backgroundColor: C.background },
+                method === "qr" && {
+                  borderColor: C.primary,
+                  backgroundColor: C.primary + "10",
+                },
               ]}
               onPress={() => setMethod("qr")}
             >
               <Ionicons
                 name="qr-code-outline"
                 size={32}
-                color={method === "qr" ? COLORS.primary : COLORS.textSecondary}
+                color={method === "qr" ? C.primary : C.textSecondary}
               />
               <Text
                 style={[
                   styles.methodText,
-                  method === "qr" && styles.methodTextSelected,
+                  { color: C.textSecondary },
+                  method === "qr" && { color: C.primary },
                 ]}
               >
                 QR
@@ -73,11 +89,20 @@ export default function PaymentModal({ visible, total, onClose, onConfirm }) {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: C.background }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelText, { color: C.textSecondary }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.confirmButton, !method && styles.confirmDisabled]}
+              style={[
+                styles.confirmButton,
+                { backgroundColor: C.income },
+                !method && styles.confirmDisabled,
+              ]}
               onPress={handleConfirm}
               disabled={!method}
             >
@@ -97,7 +122,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: SIZES.padding,
@@ -107,12 +131,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 20,
   },
   totalLabel: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     textAlign: "center",
@@ -120,13 +142,11 @@ const styles = StyleSheet.create({
   totalAmount: {
     fontSize: 36,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     textAlign: "center",
     marginBottom: 24,
   },
   methodLabel: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -142,22 +162,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 20,
     borderRadius: SIZES.cardRadius,
-    backgroundColor: COLORS.background,
     borderWidth: 2,
     borderColor: "transparent",
     gap: 8,
   },
-  methodSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + "10",
-  },
   methodText: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textSecondary,
-  },
-  methodTextSelected: {
-    color: COLORS.primary,
   },
   footer: {
     flexDirection: "row",
@@ -167,19 +178,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
     alignItems: "center",
   },
   cancelText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
   confirmButton: {
     flex: 2,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.income,
     alignItems: "center",
   },
   confirmDisabled: {

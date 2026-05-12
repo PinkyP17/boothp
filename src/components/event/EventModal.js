@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import {
   QUICK_PICK_CURRENCIES,
   ALL_CURRENCIES,
@@ -44,6 +45,7 @@ function parseDate(dateStr) {
 }
 
 export default function EventModal({ visible, onClose, onSave, event, mode }) {
+  const { colors: C } = useTheme();
   const [form, setForm] = useState(emptyForm);
   const [showDatePicker, setShowDatePicker] = useState(null); // "date" or "endDate"
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
@@ -107,55 +109,55 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: C.textPrimary }]}>{title}</Text>
 
-            <Text style={styles.label}>Event Name</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>Event Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
               value={form.name}
               onChangeText={(text) => setForm({ ...form, name: text })}
               placeholder="e.g. Anime Expo 2026"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={C.textSecondary}
             />
 
-            <Text style={styles.label}>Start Date</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>Start Date</Text>
             <TouchableOpacity
-              style={styles.dateButton}
+              style={[styles.dateButton, { backgroundColor: C.background }]}
               onPress={() => setShowDatePicker("date")}
             >
               <Ionicons
                 name="calendar-outline"
                 size={18}
-                color={form.date ? COLORS.textPrimary : COLORS.textSecondary}
+                color={form.date ? C.textPrimary : C.textSecondary}
               />
               <Text
                 style={[
                   styles.dateText,
-                  !form.date && styles.datePlaceholder,
+                  { color: C.textPrimary },
+                  !form.date && { color: C.textSecondary },
                 ]}
               >
                 {form.date ? formatDate(form.date) : "Select start date"}
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.label}>End Date</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>End Date</Text>
             <TouchableOpacity
-              style={styles.dateButton}
+              style={[styles.dateButton, { backgroundColor: C.background }]}
               onPress={() => setShowDatePicker("endDate")}
             >
               <Ionicons
                 name="calendar-outline"
                 size={18}
-                color={
-                  form.endDate ? COLORS.textPrimary : COLORS.textSecondary
-                }
+                color={form.endDate ? C.textPrimary : C.textSecondary}
               />
               <Text
                 style={[
                   styles.dateText,
-                  !form.endDate && styles.datePlaceholder,
+                  { color: C.textPrimary },
+                  !form.endDate && { color: C.textSecondary },
                 ]}
               >
                 {form.endDate ? formatDate(form.endDate) : "Select end date"}
@@ -176,29 +178,31 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
               />
             )}
 
-            <Text style={styles.label}>Location</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>Location</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
               value={form.location}
               onChangeText={(text) => setForm({ ...form, location: text })}
               placeholder="e.g. Los Angeles Convention Center"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={C.textSecondary}
             />
 
-            <Text style={styles.label}>Currency</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>Currency</Text>
             <View style={styles.currencyRow}>
               {QUICK_PICK_CURRENCIES.map((c) => (
                 <TouchableOpacity
                   key={c.code}
                   style={[
                     styles.currencyPill,
-                    form.currency === c.code && styles.currencyPillSelected,
+                    { backgroundColor: C.background },
+                    form.currency === c.code && { backgroundColor: C.primary },
                   ]}
                   onPress={() => setForm({ ...form, currency: c.code })}
                 >
                   <Text
                     style={[
                       styles.currencyPillText,
+                      { color: C.textSecondary },
                       form.currency === c.code && styles.currencyPillTextSelected,
                     ]}
                   >
@@ -213,26 +217,32 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
                   setCurrencyModalVisible(true);
                 }}
               >
-                <Text style={styles.currencyMoreText}>More...</Text>
+                <Text style={[styles.currencyMoreText, { color: C.primary }]}>More...</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.label}>Booth Fee (optional)</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>Booth Fee (optional)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
               value={form.boothFee}
               onChangeText={(text) => setForm({ ...form, boothFee: text })}
               keyboardType="decimal-pad"
               placeholder="e.g. 500.00"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={C.textSecondary}
             />
           </ScrollView>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: C.background }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelText, { color: C.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: C.primary }]}
+              onPress={handleSave}
+            >
               <Text style={styles.saveText}>{saveLabel}</Text>
             </TouchableOpacity>
           </View>
@@ -242,19 +252,19 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
       {/* Currency search modal */}
       <Modal visible={currencyModalVisible} animationType="fade" transparent>
         <View style={styles.currencyOverlay}>
-          <View style={styles.currencyModal}>
+          <View style={[styles.currencyModal, { backgroundColor: C.card }]}>
             <View style={styles.currencyModalHeader}>
-              <Text style={styles.currencyModalTitle}>Select Currency</Text>
+              <Text style={[styles.currencyModalTitle, { color: C.textPrimary }]}>Select Currency</Text>
               <TouchableOpacity onPress={() => setCurrencyModalVisible(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                <Ionicons name="close" size={24} color={C.textPrimary} />
               </TouchableOpacity>
             </View>
             <TextInput
-              style={styles.currencySearchInput}
+              style={[styles.currencySearchInput, { backgroundColor: C.background, color: C.textPrimary }]}
               value={currencySearch}
               onChangeText={setCurrencySearch}
               placeholder="Search currencies..."
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={C.textSecondary}
               autoFocus
             />
             <FlatList
@@ -268,18 +278,18 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
                 <TouchableOpacity
                   style={[
                     styles.currencyListItem,
-                    form.currency === item.code && styles.currencyListItemSelected,
+                    form.currency === item.code && { backgroundColor: C.primary + "15" },
                   ]}
                   onPress={() => {
                     setForm({ ...form, currency: item.code });
                     setCurrencyModalVisible(false);
                   }}
                 >
-                  <Text style={styles.currencyListCode}>{item.code}</Text>
-                  <Text style={styles.currencyListName} numberOfLines={1}>
+                  <Text style={[styles.currencyListCode, { color: C.textPrimary }]}>{item.code}</Text>
+                  <Text style={[styles.currencyListName, { color: C.textSecondary }]} numberOfLines={1}>
                     {item.name}
                   </Text>
-                  <Text style={styles.currencyListSymbol}>{item.symbol}</Text>
+                  <Text style={[styles.currencyListSymbol, { color: C.textPrimary }]}>{item.symbol}</Text>
                 </TouchableOpacity>
               )}
               style={styles.currencyList}
@@ -298,7 +308,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: SIZES.padding,
@@ -309,27 +318,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 20,
   },
   label: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
     marginTop: 12,
   },
   input: {
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   dateButton: {
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -339,10 +343,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
-  },
-  datePlaceholder: {
-    color: COLORS.textSecondary,
   },
   currencyRow: {
     flexDirection: "row",
@@ -354,14 +354,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: COLORS.background,
-  },
-  currencyPillSelected: {
-    backgroundColor: COLORS.primary,
   },
   currencyPillText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
   currencyPillTextSelected: {
@@ -373,7 +368,6 @@ const styles = StyleSheet.create({
   },
   currencyMoreText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.primary,
     fontWeight: "500",
   },
   currencyOverlay: {
@@ -383,7 +377,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   currencyModal: {
-    backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 16,
     maxHeight: "60%",
@@ -397,15 +390,12 @@ const styles = StyleSheet.create({
   currencyModalTitle: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "600",
-    color: COLORS.textPrimary,
   },
   currencySearchInput: {
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   currencyList: {
@@ -418,25 +408,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  currencyListItemSelected: {
-    backgroundColor: COLORS.primary + "15",
-  },
   currencyListCode: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     width: 48,
   },
   currencyListName: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     flex: 1,
     marginRight: 8,
   },
   currencyListSymbol: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
   },
   footer: {
     flexDirection: "row",
@@ -447,19 +431,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
     alignItems: "center",
   },
   cancelText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
   saveButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
   },
   saveText: {

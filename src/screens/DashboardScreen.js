@@ -1,9 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { SIZES, CARD_SHADOW } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
@@ -24,18 +25,19 @@ function formatTransactionDate(dateString) {
   return `${months[d.getMonth()]} ${d.getDate()} · ${h12}:${m} ${ampm}`;
 }
 
-const TYPE_ICONS = {
-  income: { name: "cart-outline", color: COLORS.income },
-  event_expense: { name: "receipt-outline", color: COLORS.expense },
-  restock: { name: "cube-outline", color: COLORS.primary },
-};
-
 export default function DashboardScreen({ navigation }) {
+  const { colors: C } = useTheme();
   const { state, loadDashboard } = useAppState();
   const { token } = useAuth();
   const dashboard = state.dashboard;
   const isLoading = state.isLoading && !dashboard;
   const [refreshing, setRefreshing] = useState(false);
+
+  const typeIcons = useMemo(() => ({
+    income: { name: "cart-outline", color: C.income },
+    event_expense: { name: "receipt-outline", color: C.expense },
+    restock: { name: "cube-outline", color: C.primary },
+  }), [C]);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,7 +54,7 @@ export default function DashboardScreen({ navigation }) {
   const recentTransactions = (dashboard?.transactions ?? []).slice(0, 5);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
       <ConnectivityBanner />
       <ScrollView
         style={styles.container}
@@ -65,73 +67,71 @@ export default function DashboardScreen({ navigation }) {
               await loadDashboard(token);
               setRefreshing(false);
             }}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={[C.primary]}
+            tintColor={C.primary}
           />
         }
       >
         <View style={styles.header}>
-          <Text style={styles.greeting}>Welcome back!</Text>
-          <Text style={styles.subtitle}>Your Dashboard</Text>
+          <Text style={[styles.greeting, { color: C.textPrimary }]}>Welcome back!</Text>
+          <Text style={[styles.subtitle, { color: C.textSecondary }]}>Your Dashboard</Text>
         </View>
 
         <View style={styles.cardsRow}>
           <SummaryCard
             title="Income"
             amount={income}
-            color={COLORS.income}
+            color={C.income}
             onPress={() => navigation.navigate("Finance", { filter: "Income" })}
           />
           <SummaryCard
             title="Expenses"
             amount={expenses}
-            color={COLORS.expense}
-            onPress={() =>
-              navigation.navigate("Finance", { filter: "Expenses" })
-            }
+            color={C.expense}
+            onPress={() => navigation.navigate("Finance", { filter: "Expenses" })}
           />
         </View>
         <SummaryCard
           title="Net Profit"
           amount={netProfit}
-          color={COLORS.profit}
+          color={C.profit}
           fullWidth
           onPress={() => navigation.navigate("Finance", { filter: "All" })}
         />
 
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Recent Transactions</Text>
         {isLoading ? (
-          <ActivityIndicator size="large" color={COLORS.primary} style={{ paddingVertical: 20 }} />
+          <ActivityIndicator size="large" color={C.primary} style={{ paddingVertical: 20 }} />
         ) : recentTransactions.length === 0 ? (
-          <Text style={styles.emptyText}>No transactions yet</Text>
+          <Text style={[styles.emptyText, { color: C.textSecondary }]}>No transactions yet</Text>
         ) : (
           recentTransactions.map((tx) => {
-            const icon = TYPE_ICONS[tx.type] || TYPE_ICONS.income;
+            const icon = typeIcons[tx.type] || typeIcons.income;
             const isExpense = tx.type !== "income";
             return (
-              <View key={`${tx.type}-${tx.id}`} style={[styles.txCard, CARD_SHADOW]}>
+              <View key={`${tx.type}-${tx.id}`} style={[styles.txCard, CARD_SHADOW, { backgroundColor: C.card }]}>
                 <View style={[styles.txIcon, { backgroundColor: icon.color + "15" }]}>
                   <Ionicons name={icon.name} size={18} color={icon.color} />
                 </View>
                 <View style={styles.txInfo}>
-                  <Text style={styles.txDesc} numberOfLines={1}>
+                  <Text style={[styles.txDesc, { color: C.textPrimary }]} numberOfLines={1}>
                     {tx.description}
                   </Text>
                   <View style={styles.txMetaRow}>
-                    <Text style={styles.txDate}>
+                    <Text style={[styles.txDate, { color: C.textSecondary }]}>
                       {formatTransactionDate(tx.date)}
                     </Text>
                     {tx.eventName ? (
-                      <View style={styles.txEventPill}>
-                        <Text style={styles.txEventText}>{tx.eventName}</Text>
+                      <View style={[styles.txEventPill, { backgroundColor: C.primary + "15" }]}>
+                        <Text style={[styles.txEventText, { color: C.primary }]}>{tx.eventName}</Text>
                       </View>
                     ) : null}
                     {tx.paymentMethod ? (
                       <View style={[styles.txPaymentPill, {
-                        backgroundColor: tx.paymentMethod === "cash" ? "#FF950015" : "#4A90D915",
+                        backgroundColor: tx.paymentMethod === "cash" ? "#FF950015" : C.primary + "15",
                       }]}>
                         <Text style={[styles.txPaymentText, {
-                          color: tx.paymentMethod === "cash" ? "#FF9500" : COLORS.primary,
+                          color: tx.paymentMethod === "cash" ? "#FF9500" : C.primary,
                         }]}>
                           {tx.paymentMethod === "cash" ? "Cash" : "QR"}
                         </Text>
@@ -139,7 +139,7 @@ export default function DashboardScreen({ navigation }) {
                     ) : null}
                   </View>
                 </View>
-                <Text style={[styles.txAmount, { color: isExpense ? COLORS.expense : COLORS.income }]}>
+                <Text style={[styles.txAmount, { color: isExpense ? C.expense : C.income }]}>
                   {isExpense ? "-" : "+"}${Number(tx.amount).toFixed(2)}
                 </Text>
               </View>
@@ -147,9 +147,9 @@ export default function DashboardScreen({ navigation }) {
           })
         )}
 
-        <Text style={styles.sectionTitle}>Upcoming Events</Text>
+        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Upcoming Events</Text>
         {upcomingEvents.length === 0 ? (
-          <Text style={styles.emptyText}>No upcoming events</Text>
+          <Text style={[styles.emptyText, { color: C.textSecondary }]}>No upcoming events</Text>
         ) : (
           upcomingEvents.map((event) => (
             <EventCard key={event.id} event={event} />
@@ -165,7 +165,6 @@ export default function DashboardScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -178,11 +177,9 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 4,
   },
   cardsRow: {
@@ -192,20 +189,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     marginTop: 12,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     textAlign: "center",
     paddingVertical: 20,
   },
   txCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: 12,
     marginBottom: 8,
@@ -225,7 +219,6 @@ const styles = StyleSheet.create({
   txDesc: {
     fontSize: SIZES.fontBody,
     fontWeight: "500",
-    color: COLORS.textPrimary,
     marginBottom: 4,
   },
   txMetaRow: {
@@ -236,17 +229,14 @@ const styles = StyleSheet.create({
   },
   txDate: {
     fontSize: SIZES.fontCaption - 1,
-    color: COLORS.textSecondary,
   },
   txEventPill: {
-    backgroundColor: COLORS.primary + "15",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
   txEventText: {
     fontSize: SIZES.fontCaption - 1,
-    color: COLORS.primary,
     fontWeight: "500",
   },
   txPaymentPill: {

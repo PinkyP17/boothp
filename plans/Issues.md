@@ -1,2 +1,2 @@
-When pressing an event it shows event details, then I click navbar to home and then I clikc back the event with navbar, then it still open the event details page/modal?
-Same with finance, its at more, finance, I press home and finance and it still shows the finance
+Income by evenet and expense breakdown should not be shown in the all tab, remove it
+Have a slight visual bug when going to the dashboard page, the pills load a lil bit slower which then strecth the transactions list cards, in finance transaction list there is no qr or cash

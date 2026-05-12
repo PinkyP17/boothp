@@ -1,9 +1,12 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 const FILTERS = ["All", "Income", "Expenses"];
 
 export default function FilterTabs({ selected, onSelect }) {
+  const { colors: C } = useTheme();
+
   return (
     <View style={styles.container}>
       {FILTERS.map((filter) => {
@@ -11,10 +14,10 @@ export default function FilterTabs({ selected, onSelect }) {
         return (
           <TouchableOpacity
             key={filter}
-            style={[styles.tab, isSelected && styles.tabSelected]}
+            style={[styles.tab, { backgroundColor: isSelected ? C.primary : C.card }]}
             onPress={() => onSelect(filter)}
           >
-            <Text style={[styles.tabText, isSelected && styles.tabTextSelected]}>
+            <Text style={[styles.tabText, { color: isSelected ? "#FFFFFF" : C.textSecondary }]}>
               {filter}
             </Text>
           </TouchableOpacity>
@@ -34,18 +37,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: COLORS.card,
     alignItems: "center",
-  },
-  tabSelected: {
-    backgroundColor: COLORS.primary,
   },
   tabText: {
     fontSize: SIZES.fontCaption,
     fontWeight: "600",
-    color: COLORS.textSecondary,
-  },
-  tabTextSelected: {
-    color: "#FFFFFF",
   },
 });

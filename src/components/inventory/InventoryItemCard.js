@@ -1,51 +1,83 @@
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
+import { SIZES, CARD_SHADOW } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function InventoryItemCard({ item, onPress, onRestock }) {
+  const { colors: C } = useTheme();
   const isOutOfStock = item.stock === 0;
+  const imageCount = item.images ? item.images.length : item.imageUri ? 1 : 0;
 
   return (
     <TouchableOpacity
-      style={[styles.card, CARD_SHADOW]}
+      style={[styles.card, CARD_SHADOW, { backgroundColor: C.card }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       {/* Top row: thumbnail + name + category badge */}
       <View style={styles.topRow}>
         {item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.thumbnail} />
+          <View style={styles.thumbnailContainer}>
+            <Image source={{ uri: item.imageUri }} style={styles.thumbnail} />
+            {imageCount > 1 && (
+              <View style={styles.imageCountBadge}>
+                <Text style={styles.imageCountText}>{imageCount}</Text>
+              </View>
+            )}
+          </View>
         ) : (
-          <View style={styles.thumbnailPlaceholder}>
-            <Ionicons name="cube-outline" size={20} color={COLORS.textSecondary} />
+          <View
+            style={[
+              styles.thumbnailPlaceholder,
+              { backgroundColor: C.background },
+            ]}
+          >
+            <Ionicons
+              name="cube-outline"
+              size={20}
+              color={C.textSecondary}
+            />
           </View>
         )}
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: C.textPrimary }]} numberOfLines={1}>
           {item.name}
         </Text>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: C.primary + "15" },
+          ]}
+        >
+          <Text style={[styles.categoryText, { color: C.primary }]}>
+            {item.category}
+          </Text>
         </View>
       </View>
 
       {/* Stock count */}
-      <Text style={[styles.stock, isOutOfStock && styles.stockOut]}>
+      <Text
+        style={[
+          styles.stock,
+          { color: C.textPrimary },
+          isOutOfStock && { color: C.expense },
+        ]}
+      >
         {isOutOfStock ? "Out of Stock" : `${item.stock} in stock`}
       </Text>
 
       {/* Bottom row: cost/price + restock button */}
       <View style={styles.bottomRow}>
         <View style={styles.priceInfo}>
-          <Text style={styles.priceLabel}>
+          <Text style={[styles.priceLabel, { color: C.textSecondary }]}>
             Cost:{" "}
-            <Text style={styles.priceValue}>
+            <Text style={[styles.priceValue, { color: C.textPrimary }]}>
               ${item.productionCost.toFixed(2)}
             </Text>
           </Text>
-          <Text style={styles.priceLabel}>
+          <Text style={[styles.priceLabel, { color: C.textSecondary }]}>
             {" "}
             Price:{" "}
-            <Text style={styles.priceValue}>
+            <Text style={[styles.priceValue, { color: C.textPrimary }]}>
               ${item.sellingPrice.toFixed(2)}
             </Text>
           </Text>
@@ -57,12 +89,10 @@ export default function InventoryItemCard({ item, onPress, onRestock }) {
             onRestock();
           }}
         >
-          <Ionicons
-            name="add-circle-outline"
-            size={16}
-            color={COLORS.primary}
-          />
-          <Text style={styles.restockText}>Restock</Text>
+          <Ionicons name="add-circle-outline" size={16} color={C.primary} />
+          <Text style={[styles.restockText, { color: C.primary }]}>
+            Restock
+          </Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -71,7 +101,6 @@ export default function InventoryItemCard({ item, onPress, onRestock }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
     marginBottom: 12,
@@ -82,17 +111,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
+  thumbnailContainer: {
+    position: "relative",
+    marginRight: 10,
+  },
   thumbnail: {
     width: 40,
     height: 40,
     borderRadius: 8,
-    marginRight: 10,
+  },
+  imageCountBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -4,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    minWidth: 16,
+    alignItems: "center",
+  },
+  imageCountText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "700",
   },
   thumbnailPlaceholder: {
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
@@ -100,29 +147,22 @@ const styles = StyleSheet.create({
   name: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     flex: 1,
     marginRight: 8,
   },
   categoryBadge: {
-    backgroundColor: COLORS.primary + "15",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   categoryText: {
     fontSize: 11,
-    color: COLORS.primary,
     fontWeight: "500",
   },
   stock: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 8,
-  },
-  stockOut: {
-    color: COLORS.expense,
   },
   bottomRow: {
     flexDirection: "row",
@@ -134,10 +174,8 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
   },
   priceValue: {
-    color: COLORS.textPrimary,
     fontWeight: "500",
   },
   restockButton: {
@@ -147,7 +185,6 @@ const styles = StyleSheet.create({
   },
   restockText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.primary,
     fontWeight: "500",
   },
 });

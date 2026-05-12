@@ -1,7 +1,7 @@
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 import HomeStack from "./HomeStack";
 import InventoryScreen from "../screens/InventoryScreen";
@@ -12,13 +12,21 @@ import MoreStack from "./MoreStack";
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
+  const { colors, isDark } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textSecondary,
-        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: colors.tabBar,
+          borderTopWidth: 0.5,
+          borderTopColor: isDark ? "#333" : "#E0E0E0",
+          height: 60,
+          paddingBottom: 6,
+        },
       }}
     >
       <Tab.Screen
@@ -49,7 +57,15 @@ export default function TabNavigator() {
         component={POSScreen}
         options={{
           tabBarIcon: ({ size }) => (
-            <View style={styles.posButton}>
+            <View style={{
+              backgroundColor: colors.posButton,
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+            }}>
               <Ionicons name="cart-outline" size={size} color="#FFFFFF" />
             </View>
           ),
@@ -87,22 +103,3 @@ export default function TabNavigator() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: COLORS.tabBar,
-    borderTopWidth: 0.5,
-    borderTopColor: "#E0E0E0",
-    height: 60,
-    paddingBottom: 6,
-  },
-  posButton: {
-    backgroundColor: COLORS.posButton,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-});

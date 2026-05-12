@@ -1,42 +1,56 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
-
-const SETTINGS_ITEMS = [
-  { label: "Theme", icon: "color-palette-outline", detail: "Light" },
-  { label: "Currency", icon: "cash-outline", detail: "Per-event" },
-  { label: "Notifications", icon: "notifications-outline", detail: "Off" },
-];
+import { SIZES, CARD_SHADOW } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export default function SettingsScreen() {
+  const { colors: C, isDark, toggleTheme } = useTheme();
+
+  const settingsItems = [
+    {
+      label: "Dark Mode",
+      icon: isDark ? "moon" : "moon-outline",
+      right: (
+        <Switch
+          value={isDark}
+          onValueChange={toggleTheme}
+          trackColor={{ false: "#E0E0E0", true: C.primary + "60" }}
+          thumbColor={isDark ? C.primary : "#f4f3f4"}
+        />
+      ),
+    },
+    { label: "Currency", icon: "cash-outline", detail: "Per-event" },
+    { label: "Notifications", icon: "notifications-outline", detail: "Coming soon" },
+  ];
+
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]} edges={["bottom"]}>
       <View style={styles.container}>
-        <View style={[styles.card, CARD_SHADOW]}>
-          {SETTINGS_ITEMS.map((item, index) => (
-            <View
+        <View style={[styles.card, CARD_SHADOW, { backgroundColor: C.card }]}>
+          {settingsItems.map((item, index) => (
+            <TouchableOpacity
               key={item.label}
               style={[
                 styles.row,
-                index < SETTINGS_ITEMS.length - 1 && styles.rowBorder,
+                index < settingsItems.length - 1 && [styles.rowBorder, { borderBottomColor: isDark ? "#333" : "#E0E0E0" }],
               ]}
+              onPress={item.label === "Dark Mode" ? toggleTheme : undefined}
+              activeOpacity={item.label === "Dark Mode" ? 0.7 : 1}
             >
               <Ionicons
                 name={item.icon}
                 size={20}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
                 style={styles.icon}
               />
-              <Text style={styles.label}>{item.label}</Text>
-              <Text style={styles.detail}>{item.detail}</Text>
-            </View>
+              <Text style={[styles.label, { color: C.textPrimary }]}>{item.label}</Text>
+              {item.right || (
+                <Text style={[styles.detail, { color: C.textSecondary }]}>{item.detail}</Text>
+              )}
+            </TouchableOpacity>
           ))}
         </View>
-
-        <Text style={styles.comingSoon}>
-          Settings will be available in a future update.
-        </Text>
       </View>
     </SafeAreaView>
   );
@@ -45,7 +59,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -53,7 +66,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   card: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     overflow: "hidden",
   },
@@ -65,7 +77,6 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E0E0E0",
   },
   icon: {
     marginRight: 12,
@@ -73,16 +84,8 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   detail: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
-  },
-  comingSoon: {
-    fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    marginTop: 24,
   },
 });

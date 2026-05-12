@@ -6,6 +6,7 @@ import { initDatabase } from "./src/services/database";
 import { AppStateProvider } from "./src/context/AppContext";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ConnectivityProvider } from "./src/context/ConnectivityContext";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { ToastProvider } from "./src/components/Toast";
 import TabNavigator from "./src/navigation/TabNavigator";
 import AuthStack from "./src/navigation/AuthStack";
@@ -13,11 +14,12 @@ import { COLORS } from "./src/constants/theme";
 
 function RootNavigator() {
   const { isAuthenticated, isRestoring } = useAuth();
+  const { isDark, colors } = useTheme();
 
   if (isRestoring) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -25,7 +27,7 @@ function RootNavigator() {
   return (
     <NavigationContainer>
       {isAuthenticated ? <TabNavigator /> : <AuthStack />}
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
     </NavigationContainer>
   );
 }
@@ -52,15 +54,17 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <ConnectivityProvider>
-        <AppStateProvider>
-          <ToastProvider>
-            <RootNavigator />
-          </ToastProvider>
-        </AppStateProvider>
-      </ConnectivityProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ConnectivityProvider>
+          <AppStateProvider>
+            <ToastProvider>
+              <RootNavigator />
+            </ToastProvider>
+          </AppStateProvider>
+        </ConnectivityProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -12,11 +12,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function SignUpScreen({ navigation }) {
   const { signup, isLoading, error, clearError } = useAuth();
+  const { colors: C } = useTheme();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,7 +56,7 @@ export default function SignUpScreen({ navigation }) {
   const displayError = localError || error;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: C.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}
@@ -64,51 +66,51 @@ export default function SignUpScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="person-add-outline" size={36} color={COLORS.primary} />
+            <View style={[styles.iconCircle, { backgroundColor: C.card }]}>
+              <Ionicons name="person-add-outline" size={36} color={C.primary} />
             </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
+            <Text style={[styles.title, { color: C.textPrimary }]}>Create Account</Text>
+            <Text style={[styles.subtitle, { color: C.textSecondary }]}>Sign up to get started</Text>
           </View>
 
           {displayError && (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={18} color={COLORS.expense} />
-              <Text style={styles.errorText}>{displayError}</Text>
+              <Ionicons name="alert-circle" size={18} color={C.expense} />
+              <Text style={[styles.errorText, { color: C.expense }]}>{displayError}</Text>
             </View>
           )}
 
           <View style={styles.form}>
-            <Text style={styles.label}>Name</Text>
-            <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: C.textPrimary }]}>Name</Text>
+            <View style={[styles.inputContainer, { backgroundColor: C.card }]}>
               <Ionicons
                 name="person-outline"
                 size={20}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: C.textPrimary }]}
                 placeholder="Enter your name"
-                placeholderTextColor={COLORS.textSecondary}
+                placeholderTextColor={C.textSecondary}
                 value={name}
                 onChangeText={setName}
                 autoCorrect={false}
               />
             </View>
 
-            <Text style={styles.label}>Email</Text>
-            <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: C.textPrimary }]}>Email</Text>
+            <View style={[styles.inputContainer, { backgroundColor: C.card }]}>
               <Ionicons
                 name="mail-outline"
                 size={20}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: C.textPrimary }]}
                 placeholder="Enter your email"
-                placeholderTextColor={COLORS.textSecondary}
+                placeholderTextColor={C.textSecondary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -117,18 +119,18 @@ export default function SignUpScreen({ navigation }) {
               />
             </View>
 
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: C.textPrimary }]}>Password</Text>
+            <View style={[styles.inputContainer, { backgroundColor: C.card }]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: C.textPrimary }]}
                 placeholder="At least 6 characters"
-                placeholderTextColor={COLORS.textSecondary}
+                placeholderTextColor={C.textSecondary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -140,23 +142,23 @@ export default function SignUpScreen({ navigation }) {
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
-                  color={COLORS.textSecondary}
+                  color={C.textSecondary}
                 />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.label}>Confirm Password</Text>
-            <View style={styles.inputContainer}>
+            <Text style={[styles.label, { color: C.textPrimary }]}>Confirm Password</Text>
+            <View style={[styles.inputContainer, { backgroundColor: C.card }]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: C.textPrimary }]}
                 placeholder="Re-enter your password"
-                placeholderTextColor={COLORS.textSecondary}
+                placeholderTextColor={C.textSecondary}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
@@ -164,7 +166,7 @@ export default function SignUpScreen({ navigation }) {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: C.primary }, isLoading && styles.buttonDisabled]}
               onPress={handleSignUp}
               disabled={isLoading}
             >
@@ -177,9 +179,9 @@ export default function SignUpScreen({ navigation }) {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={[styles.footerText, { color: C.textSecondary }]}>Already have an account? </Text>
             <TouchableOpacity onPress={goToLogin}>
-              <Text style={styles.footerLink}>Sign In</Text>
+              <Text style={[styles.footerLink, { color: C.primary }]}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -191,7 +193,6 @@ export default function SignUpScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   flex: {
     flex: 1,
@@ -209,7 +210,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.card,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
@@ -217,12 +217,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   errorBox: {
     flexDirection: "row",
@@ -234,7 +232,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: {
-    color: COLORS.expense,
     fontSize: SIZES.fontCaption,
     flex: 1,
   },
@@ -244,7 +241,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: SIZES.fontCaption,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -253,7 +249,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -266,13 +261,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   eyeButton: {
     padding: 4,
   },
   button: {
-    backgroundColor: COLORS.primary,
     borderRadius: SIZES.cardRadius,
     paddingVertical: 16,
     alignItems: "center",
@@ -293,11 +286,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   footerLink: {
     fontSize: SIZES.fontBody,
-    color: COLORS.primary,
     fontWeight: "600",
   },
 });

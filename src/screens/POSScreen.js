@@ -9,10 +9,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
 import CategoryFilter from "../components/CategoryFilter";
 import POSItemTile from "../components/pos/POSItemTile";
@@ -22,6 +23,7 @@ import PaymentModal from "../components/pos/PaymentModal";
 import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function POSScreen() {
+  const { colors: C } = useTheme();
   const { state, createSale, loadInventory } = useAppState();
   const { token } = useAuth();
   const { showToast } = useToast();
@@ -139,12 +141,12 @@ export default function POSScreen() {
   }, [showSuccess]);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
       <ConnectivityBanner />
       <View style={styles.header}>
-        <Text style={styles.title}>POS</Text>
+        <Text style={[styles.title, { color: C.textPrimary }]}>POS</Text>
         {state.sales.length > 0 && (
-          <Text style={styles.salesCount}>
+          <Text style={[styles.salesCount, { color: C.textSecondary }]}>
             {state.sales.length} sale{state.sales.length !== 1 ? "s" : ""} today
           </Text>
         )}
@@ -170,8 +172,8 @@ export default function POSScreen() {
               await loadInventory(token);
               setRefreshing(false);
             }}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={[C.primary]}
+            tintColor={C.primary}
           />
         }
       >
@@ -220,9 +222,9 @@ export default function POSScreen() {
 
       {showSuccess && (
         <View style={styles.successOverlay}>
-          <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle" size={48} color={COLORS.income} />
-            <Text style={styles.successText}>Sale Complete!</Text>
+          <View style={[styles.successBox, { backgroundColor: C.card }]}>
+            <Ionicons name="checkmark-circle" size={48} color={C.income} />
+            <Text style={[styles.successText, { color: C.textPrimary }]}>Sale Complete!</Text>
           </View>
         </View>
       )}
@@ -233,7 +235,6 @@ export default function POSScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   header: {
     paddingHorizontal: SIZES.padding,
@@ -246,11 +247,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   salesCount: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
   },
   filterContainer: {
     paddingHorizontal: SIZES.padding,
@@ -275,7 +274,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   successBox: {
-    backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 32,
     alignItems: "center",
@@ -284,6 +282,5 @@ const styles = StyleSheet.create({
   successText: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
 });

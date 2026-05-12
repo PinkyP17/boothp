@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import FinanceSummary from "../components/finance/FinanceSummary";
@@ -10,6 +11,7 @@ import FilterTabs from "../components/finance/FilterTabs";
 import TransactionCard from "../components/finance/TransactionCard";
 
 export default function FinanceScreen({ route }) {
+  const { colors: C } = useTheme();
   const { state, loadDashboard } = useAppState();
   const { token } = useAuth();
   const initialFilter = route?.params?.filter || "All";
@@ -35,41 +37,34 @@ export default function FinanceScreen({ route }) {
     return transactions;
   }, [transactions, filter]);
 
-  // Chart data — group by event expenses + overall sales
   const chartData = useMemo(() => {
-    if (!dashboard) return { labels: [], incomeData: [], expenseData: [] };
+    if (!dashboard) return { revenueByDay: {}, expenseByDay: {}, expenseByCategory: {}, incomeByEvent: {}, eventROI: [] };
 
-    const labels = [];
-    const incomeData = [];
-    const expenseData = [];
+    const revenueByDay = dashboard.revenueByDay || {};
+    const expenseByDay = dashboard.expenseByDay || {};
+    const expenseByCategory = dashboard.expenseByCategory || {};
+    const incomeByEvent = dashboard.incomeByEvent || {};
 
-    if (dashboard.income > 0) {
-      labels.push("Sales");
-      incomeData.push(Number(dashboard.income));
-      expenseData.push(0);
-    }
-
-    if (dashboard.restockExpenses > 0) {
-      labels.push("Restock");
-      incomeData.push(0);
-      expenseData.push(Number(dashboard.restockExpenses));
-    }
-
-    (dashboard.upcomingEvents || []).forEach((evt) => {
-      if (Number(evt.totalExpenses) > 0) {
-        const name =
-          evt.name.length > 8 ? evt.name.substring(0, 8) + "…" : evt.name;
-        labels.push(name);
-        incomeData.push(0);
-        expenseData.push(Number(evt.totalExpenses));
-      }
+    const eventROI = (dashboard.allEvents || []).map((evt) => {
+      const eventSales = transactions.filter((t) => {
+        if (t.type !== "income") return false;
+        const txDate = (t.date || "").split("T")[0];
+        return txDate >= evt.date && txDate <= (evt.endDate || evt.date);
+      });
+      const eventIncome = eventSales.reduce((sum, t) => sum + (t.amount || 0), 0);
+      return {
+        name: evt.name.length > 10 ? evt.name.substring(0, 10) + "…" : evt.name,
+        income: eventIncome,
+        expenses: evt.totalExpenses || 0,
+        profit: eventIncome - (evt.totalExpenses || 0),
+      };
     });
 
-    return { labels, incomeData, expenseData };
-  }, [dashboard]);
+    return { revenueByDay, expenseByDay, expenseByCategory, incomeByEvent, eventROI };
+  }, [dashboard, transactions]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]} edges={["bottom"]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <FinanceSummary
           income={income}
@@ -80,15 +75,19 @@ export default function FinanceScreen({ route }) {
         <FilterTabs selected={filter} onSelect={setFilter} />
 
         <FinanceChart
-          incomeData={chartData.incomeData}
-          expenseData={chartData.expenseData}
-          labels={chartData.labels}
+          revenueByDay={chartData.revenueByDay}
+          expenseByDay={chartData.expenseByDay}
+          expenseByCategory={chartData.expenseByCategory}
+          incomeByEvent={chartData.incomeByEvent}
+          eventROI={chartData.eventROI}
+          totalIncome={income}
+          totalExpenses={expenses}
           filter={filter}
         />
 
-        <Text style={styles.sectionTitle}>Transactions</Text>
+        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Transactions</Text>
         {filteredTransactions.length === 0 ? (
-          <Text style={styles.emptyText}>No transactions yet</Text>
+          <Text style={[styles.emptyText, { color: C.textSecondary }]}>No transactions yet</Text>
         ) : (
           filteredTransactions.map((transaction, index) => (
             <TransactionCard
@@ -107,7 +106,6 @@ export default function FinanceScreen({ route }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -116,12 +114,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   emptyText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     textAlign: "center",
     paddingVertical: 20,
   },

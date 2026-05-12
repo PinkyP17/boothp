@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { SIZES, CARD_SHADOW } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export default function SummaryCard({
@@ -11,6 +12,8 @@ export default function SummaryCard({
   currencyCode,
   onPress,
 }) {
+  const { colors: C } = useTheme();
+
   let displayAmount;
   if (format === "number") {
     displayAmount = `${amount}`;
@@ -25,10 +28,10 @@ export default function SummaryCard({
 
   return (
     <Wrapper
-      style={[styles.card, CARD_SHADOW, fullWidth && styles.fullWidth]}
+      style={[styles.card, CARD_SHADOW, fullWidth && styles.fullWidth, { backgroundColor: C.card }]}
       {...wrapperProps}
     >
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: C.textSecondary }]}>{title}</Text>
       <Text style={[styles.amount, { color }]}>{displayAmount}</Text>
     </Wrapper>
   );
@@ -36,7 +39,6 @@ export default function SummaryCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
     width: "48%",
@@ -47,7 +49,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     marginBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.5,

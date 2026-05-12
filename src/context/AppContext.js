@@ -7,6 +7,7 @@ import * as inventoryRepo from "../services/repositories/inventoryRepo";
 import * as salesRepo from "../services/repositories/salesRepo";
 import * as eventsRepo from "../services/repositories/eventsRepo";
 import * as syncQueueRepo from "../services/repositories/syncQueueRepo";
+import * as itemImagesRepo from "../services/repositories/itemImagesRepo";
 import { syncAll } from "../services/syncEngine";
 import { useConnectivity } from "./ConnectivityContext";
 
@@ -133,6 +134,19 @@ function appReducer(state, action) {
 
 // Map SQLite row to frontend shape for inventory
 function mapInventoryItem(row) {
+  // Load images from junction table
+  const imageRows = row.id
+    ? itemImagesRepo.getByItemId(row.id)
+    : row.local_id
+      ? itemImagesRepo.getByItemLocalId(row.local_id)
+      : [];
+  const images = imageRows.map((r) => r.image_uri);
+
+  // Fallback: if no images in junction table but legacy image_uri exists, use it
+  if (images.length === 0 && row.image_uri) {
+    images.push(row.image_uri);
+  }
+
   return {
     id: row.id,
     localId: row.local_id,
@@ -141,7 +155,8 @@ function mapInventoryItem(row) {
     productionCost: row.production_cost,
     sellingPrice: row.selling_price,
     stock: row.stock,
-    imageUri: row.image_uri,
+    imageUri: images[0] || null,
+    images,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -154,21 +169,43 @@ function computeLocalDashboard() {
 
   const income = sales.reduce((sum, s) => sum + (s.total || 0), 0);
 
-  let totalExpenses = 0;
+  let totalEventExpenses = 0;
+  let restockExpenses = 0;
   const upcomingEvents = [];
+  const allEventsWithTotals = [];
 
   for (const event of events) {
-    const eventExpenses = (event.expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
-    totalExpenses += eventExpenses;
+    const eventExpenseTotal = (event.expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
+    totalEventExpenses += eventExpenseTotal;
+
+    const eventWithTotals = { ...event, totalExpenses: eventExpenseTotal };
+    allEventsWithTotals.push(eventWithTotals);
 
     if (event.date >= today) {
-      upcomingEvents.push(event);
+      upcomingEvents.push(eventWithTotals);
     }
   }
 
+  // Estimate restock expenses from sync queue or inventory cost
+  // (Restock costs aren't stored separately in SQLite, so we approximate from the queue)
+  try {
+    const db = require("../services/database").getDb();
+    const restockEntries = db.getAllSync(
+      "SELECT payload FROM sync_queue WHERE entity_type = 'restock' AND status = 'completed'"
+    );
+    for (const entry of restockEntries) {
+      try {
+        const payload = JSON.parse(entry.payload);
+        restockExpenses += payload.cost || 0;
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  const totalExpenses = totalEventExpenses + restockExpenses;
+
   // Build recent transactions from sales + event expenses
   const transactions = [];
-  for (const sale of sales.slice(0, 10)) {
+  for (const sale of sales) {
     const itemNames = (sale.items || []).map((i) => `${i.quantity}x ${i.name}`).join(", ");
     transactions.push({
       id: sale.id || sale.localId,
@@ -194,12 +231,65 @@ function computeLocalDashboard() {
 
   transactions.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
+  // Revenue by day for line chart
+  const revenueByDay = {};
+  for (const sale of sales) {
+    const day = (sale.timestamp || "").split("T")[0];
+    if (day) {
+      revenueByDay[day] = (revenueByDay[day] || 0) + (sale.total || 0);
+    }
+  }
+
+  // Expense breakdown by category
+  const expenseByCategory = {};
+  for (const event of events) {
+    for (const exp of event.expenses || []) {
+      expenseByCategory[exp.category] = (expenseByCategory[exp.category] || 0) + exp.amount;
+    }
+  }
+  if (restockExpenses > 0) {
+    expenseByCategory["Restock"] = (expenseByCategory["Restock"] || 0) + restockExpenses;
+  }
+
+  // Income breakdown by event
+  const incomeByEvent = {};
+  for (const event of events) {
+    const endDate = event.endDate || event.date;
+    let eventIncome = 0;
+    for (const sale of sales) {
+      const saleDay = (sale.timestamp || "").split("T")[0];
+      if (saleDay && saleDay >= event.date && saleDay <= endDate) {
+        eventIncome += sale.total || 0;
+      }
+    }
+    if (eventIncome > 0) {
+      incomeByEvent[event.name] = (incomeByEvent[event.name] || 0) + eventIncome;
+    }
+  }
+
+  // Expense by day for comparison chart
+  const expenseByDay = {};
+  for (const event of events) {
+    for (const exp of event.expenses || []) {
+      const day = (exp.createdAt || event.createdAt || "").split("T")[0];
+      if (day) {
+        expenseByDay[day] = (expenseByDay[day] || 0) + exp.amount;
+      }
+    }
+  }
+
   return {
     income,
     totalExpenses,
+    restockExpenses,
     netProfit: income - totalExpenses,
     upcomingEvents: upcomingEvents.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5),
-    transactions: transactions.slice(0, 10),
+    allEvents: allEventsWithTotals,
+    transactions: transactions.slice(0, 20),
+    revenueByDay,
+    expenseByDay,
+    expenseByCategory,
+    incomeByEvent,
   };
 }
 
@@ -257,7 +347,8 @@ export function AppStateProvider({ children }) {
       },
 
       addInventoryItem: async (token, itemData) => {
-        const { imageUri, ...apiData } = itemData;
+        const { imageUri, images: itemImages, ...apiData } = itemData;
+        const imageList = itemImages && itemImages.length > 0 ? itemImages : imageUri ? [imageUri] : [];
         const localId = generateLocalId();
         const now = new Date().toISOString();
 
@@ -269,11 +360,16 @@ export function AppStateProvider({ children }) {
           production_cost: apiData.productionCost,
           selling_price: apiData.sellingPrice,
           stock: apiData.stock,
-          image_uri: imageUri || null,
+          image_uri: imageList[0] || null,
           created_at: now,
           updated_at: now,
         };
         inventoryRepo.upsert(localItem);
+
+        // Save images to junction table
+        if (imageList.length > 0) {
+          itemImagesRepo.replaceImages(null, localId, imageList);
+        }
 
         // Enqueue sync
         syncQueueRepo.enqueue("inventory_item", "CREATE", localId, null, apiData);
@@ -308,10 +404,12 @@ export function AppStateProvider({ children }) {
                 production_cost: data.productionCost,
                 selling_price: data.sellingPrice,
                 stock: data.stock,
-                image_uri: imageUri || null,
+                image_uri: imageList[0] || null,
                 created_at: data.createdAt,
                 updated_at: data.updatedAt,
               });
+              // Update junction table with server ID
+              itemImagesRepo.updateItemId(localId, data.id);
               // Clear the sync queue entry
               const pending = syncQueueRepo.getPending();
               const entry = pending.find((e) => e.entity_local_id === localId);
@@ -319,7 +417,7 @@ export function AppStateProvider({ children }) {
 
               dispatch({
                 type: "UPDATE_INVENTORY_ITEM",
-                payload: { ...data, imageUri: imageUri || null, localId },
+                payload: { ...data, imageUri: imageList[0] || null, images: imageList, localId },
               });
               return { success: true };
             }
@@ -332,7 +430,8 @@ export function AppStateProvider({ children }) {
       },
 
       updateInventoryItem: async (token, itemId, itemData) => {
-        const { imageUri, ...apiData } = itemData;
+        const { imageUri, images: itemImages, ...apiData } = itemData;
+        const imageList = itemImages && itemImages.length > 0 ? itemImages : imageUri ? [imageUri] : [];
 
         // Write to SQLite
         inventoryRepo.upsert({
@@ -342,10 +441,13 @@ export function AppStateProvider({ children }) {
           production_cost: apiData.productionCost,
           selling_price: apiData.sellingPrice,
           stock: apiData.stock,
-          image_uri: imageUri || null,
+          image_uri: imageList[0] || null,
           updated_at: new Date().toISOString(),
           created_at: apiData.createdAt || new Date().toISOString(),
         });
+
+        // Update images in junction table
+        itemImagesRepo.replaceImages(itemId, null, imageList);
 
         // Enqueue sync
         syncQueueRepo.enqueue("inventory_item", "UPDATE", null, itemId, apiData);
@@ -353,7 +455,7 @@ export function AppStateProvider({ children }) {
         // Dispatch to state
         dispatch({
           type: "UPDATE_INVENTORY_ITEM",
-          payload: { ...apiData, id: itemId, imageUri: imageUri || null },
+          payload: { ...apiData, id: itemId, imageUri: imageList[0] || null, images: imageList },
         });
 
         // Try immediate sync
@@ -378,7 +480,7 @@ export function AppStateProvider({ children }) {
 
               dispatch({
                 type: "UPDATE_INVENTORY_ITEM",
-                payload: { ...data, imageUri: imageUri || null },
+                payload: { ...data, imageUri: imageList[0] || null, images: imageList },
               });
               return { success: true };
             }
@@ -448,6 +550,8 @@ export function AppStateProvider({ children }) {
       },
 
       deleteInventoryItem: async (token, itemId) => {
+        // Delete images from junction table
+        itemImagesRepo.removeAllForItem(itemId);
         // Delete from SQLite
         inventoryRepo.deleteItem(itemId);
 
@@ -895,6 +999,8 @@ export function AppStateProvider({ children }) {
         }
 
         // If online, fetch from API for authoritative data
+        // Merge with local chart fields (revenueByDay, expenseByCategory, allEvents)
+        // since the API may not return those
         try {
           const online = await isOnline();
           if (!online) return;
@@ -904,7 +1010,19 @@ export function AppStateProvider({ children }) {
           });
           const data = await res.json();
           if (res.ok) {
-            dispatch({ type: "SET_DASHBOARD", payload: data });
+            const local = computeLocalDashboard();
+            dispatch({
+              type: "SET_DASHBOARD",
+              payload: {
+                ...data,
+                revenueByDay: data.revenueByDay || local.revenueByDay,
+                expenseByDay: data.expenseByDay || local.expenseByDay,
+                expenseByCategory: data.expenseByCategory || local.expenseByCategory,
+                incomeByEvent: data.incomeByEvent || local.incomeByEvent,
+                allEvents: data.allEvents || local.allEvents,
+                restockExpenses: data.restockExpenses ?? local.restockExpenses,
+              },
+            });
           }
         } catch (error) {
           console.warn("Dashboard fetch failed:", error.message);

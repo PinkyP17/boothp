@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
 
 const ToastContext = createContext();
 

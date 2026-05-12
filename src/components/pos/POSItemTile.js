@@ -6,31 +6,52 @@ import {
   Dimensions,
   Image,
 } from "react-native";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TILE_WIDTH = (SCREEN_WIDTH - SIZES.padding * 3) / 2;
 
 export default function POSItemTile({ item, onPress, inCartQty }) {
+  const { colors: C } = useTheme();
   const isOutOfStock = item.stock === 0;
 
   return (
     <TouchableOpacity
-      style={[styles.tile, isOutOfStock && styles.disabled]}
+      style={[
+        styles.tile,
+        {
+          backgroundColor: C.card,
+          borderColor: C.posButton + "30",
+        },
+        isOutOfStock && styles.disabled,
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
       disabled={isOutOfStock}
     >
       {/* Cart quantity badge */}
       {inCartQty > 0 && (
-        <View style={styles.qtyBadge}>
+        <View style={[styles.qtyBadge, { backgroundColor: C.primary }]}>
           <Text style={styles.qtyBadgeText}>{inCartQty}</Text>
         </View>
       )}
 
       {/* Stock badge */}
-      <View style={[styles.stockBadge, isOutOfStock && styles.stockBadgeOut]}>
-        <Text style={[styles.stockText, isOutOfStock && styles.stockTextOut]}>
+      <View
+        style={[
+          styles.stockBadge,
+          { backgroundColor: C.primary + "15" },
+          isOutOfStock && { backgroundColor: C.expense + "15" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.stockText,
+            { color: C.primary },
+            isOutOfStock && { color: C.expense },
+          ]}
+        >
           {isOutOfStock ? "Out" : item.stock}
         </Text>
       </View>
@@ -43,10 +64,12 @@ export default function POSItemTile({ item, onPress, inCartQty }) {
         />
       )}
 
-      <Text style={styles.name} numberOfLines={2}>
+      <Text style={[styles.name, { color: C.textPrimary }]} numberOfLines={2}>
         {item.name}
       </Text>
-      <Text style={styles.price}>${item.sellingPrice.toFixed(2)}</Text>
+      <Text style={[styles.price, { color: C.posButton }]}>
+        ${item.sellingPrice.toFixed(2)}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -54,7 +77,6 @@ export default function POSItemTile({ item, onPress, inCartQty }) {
 const styles = StyleSheet.create({
   tile: {
     width: TILE_WIDTH,
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: 14,
     marginBottom: 12,
@@ -62,7 +84,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 140,
     borderWidth: 2,
-    borderColor: COLORS.posButton + "30",
     overflow: "hidden",
   },
   tileImage: {
@@ -78,7 +99,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -6,
     left: -6,
-    backgroundColor: COLORS.primary,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -95,32 +115,22 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 6,
     right: 6,
-    backgroundColor: COLORS.primary + "15",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
   },
-  stockBadgeOut: {
-    backgroundColor: COLORS.expense + "15",
-  },
   stockText: {
     fontSize: 10,
-    color: COLORS.primary,
     fontWeight: "600",
-  },
-  stockTextOut: {
-    color: COLORS.expense,
   },
   name: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     textAlign: "center",
     marginBottom: 4,
   },
   price: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.posButton,
   },
 });

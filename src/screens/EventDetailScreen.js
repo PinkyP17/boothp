@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { SIZES, CARD_SHADOW } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 import { getEventStatus } from "../utils/eventStatus";
 import { formatCurrency } from "../utils/formatCurrency";
 import { useAppState } from "../context/AppContext";
@@ -22,12 +23,6 @@ import SummaryCard from "../components/SummaryCard";
 import EventModal from "../components/event/EventModal";
 import EventExpenseModal from "../components/event/EventExpenseModal";
 import ConnectivityBanner from "../components/ConnectivityBanner";
-
-const STATUS_COLORS = {
-  upcoming: COLORS.primary,
-  active: COLORS.income,
-  past: COLORS.textSecondary,
-};
 
 function formatDate(dateString) {
   if (!dateString) return "";
@@ -86,6 +81,13 @@ export default function EventDetailScreen({ navigation, route }) {
   const { state, updateEvent, addEventExpense, deleteEventExpense, loadSales, loadEvents } =
     useAppState();
   const { token } = useAuth();
+  const { colors: C } = useTheme();
+
+  const STATUS_COLORS = {
+    upcoming: C.primary,
+    active: C.income,
+    past: C.textSecondary,
+  };
 
   const event = state.events.find((e) => e.id === eventId);
   const { showToast } = useToast();
@@ -115,11 +117,11 @@ export default function EventDetailScreen({ navigation, route }) {
 
   if (!event) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
         <View style={styles.centered}>
-          <Text style={styles.emptyText}>Event not found</Text>
+          <Text style={[styles.emptyText, { color: C.textSecondary }]}>Event not found</Text>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={[styles.emptyText, { color: COLORS.primary, marginTop: 12 }]}>
+            <Text style={[styles.emptyText, { color: C.primary, marginTop: 12 }]}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -129,7 +131,7 @@ export default function EventDetailScreen({ navigation, route }) {
   }
 
   const status = getEventStatus(event);
-  const dotColor = STATUS_COLORS[status] || COLORS.textSecondary;
+  const dotColor = STATUS_COLORS[status] || C.textSecondary;
   const eventCurrency = event.currency || "MYR";
   const totalExpenses = event.expenses.reduce(
     (sum, exp) => sum + exp.amount,
@@ -184,7 +186,7 @@ export default function EventDetailScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
       <ConnectivityBanner />
       {/* Header */}
       <View style={styles.header}>
@@ -192,13 +194,13 @@ export default function EventDetailScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={C.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text style={[styles.headerTitle, { color: C.textPrimary }]} numberOfLines={1}>
           {event.name}
         </Text>
         <TouchableOpacity onPress={() => setEditModalVisible(true)}>
-          <Ionicons name="pencil-outline" size={20} color={COLORS.primary} />
+          <Ionicons name="pencil-outline" size={20} color={C.primary} />
         </TouchableOpacity>
       </View>
 
@@ -213,13 +215,13 @@ export default function EventDetailScreen({ navigation, route }) {
               await Promise.all([loadEvents(token), loadSales(token)]);
               setRefreshing(false);
             }}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={[C.primary]}
+            tintColor={C.primary}
           />
         }
       >
         {/* Event Info */}
-        <View style={[styles.infoCard, CARD_SHADOW]}>
+        <View style={[styles.infoCard, { backgroundColor: C.card }, CARD_SHADOW]}>
           <View
             style={[styles.statusBadge, { backgroundColor: dotColor + "15" }]}
           >
@@ -231,9 +233,9 @@ export default function EventDetailScreen({ navigation, route }) {
             <Ionicons
               name="calendar-outline"
               size={16}
-              color={COLORS.textSecondary}
+              color={C.textSecondary}
             />
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: C.textSecondary }]}>
               {formatDateRange(event.date, event.endDate)}
             </Text>
           </View>
@@ -242,29 +244,29 @@ export default function EventDetailScreen({ navigation, route }) {
               <Ionicons
                 name="location-outline"
                 size={16}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
               />
-              <Text style={styles.infoText}>{event.location}</Text>
+              <Text style={[styles.infoText, { color: C.textSecondary }]}>{event.location}</Text>
             </View>
           ) : null}
         </View>
 
         {/* Financial Summary */}
         <View style={styles.cardsRow}>
-          <SummaryCard title="Sales" amount={totalSales} color={COLORS.income} currencyCode={eventCurrency} />
+          <SummaryCard title="Sales" amount={totalSales} color={C.income} currencyCode={eventCurrency} />
           <SummaryCard
             title="Expenses"
             amount={totalExpenses}
-            color={COLORS.expense}
+            color={C.expense}
             currencyCode={eventCurrency}
           />
         </View>
-        <View style={[styles.netCard, CARD_SHADOW]}>
-          <Text style={styles.netLabel}>Net Profit</Text>
+        <View style={[styles.netCard, { backgroundColor: C.card }, CARD_SHADOW]}>
+          <Text style={[styles.netLabel, { color: C.textSecondary }]}>Net Profit</Text>
           <Text
             style={[
               styles.netAmount,
-              { color: netProfit >= 0 ? COLORS.income : COLORS.expense },
+              { color: netProfit >= 0 ? C.income : C.expense },
             ]}
           >
             {netProfit >= 0 ? "+" : "-"}{formatCurrency(Math.abs(netProfit), eventCurrency)}
@@ -274,33 +276,33 @@ export default function EventDetailScreen({ navigation, route }) {
         {/* Expenses Breakdown */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Expenses</Text>
+            <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Expenses</Text>
             <TouchableOpacity onPress={() => setExpenseModalVisible(true)}>
               <Ionicons
                 name="add-circle-outline"
                 size={22}
-                color={COLORS.primary}
+                color={C.primary}
               />
             </TouchableOpacity>
           </View>
 
           {event.expenses.length === 0 ? (
-            <View style={styles.emptySection}>
+            <View style={[styles.emptySection, { backgroundColor: C.card }]}>
               <Ionicons
                 name="receipt-outline"
                 size={32}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
               />
-              <Text style={styles.emptySectionText}>No expenses yet</Text>
+              <Text style={[styles.emptySectionText, { color: C.textSecondary }]}>No expenses yet</Text>
             </View>
           ) : (
             event.expenses.map((expense) => (
-              <View key={expense.id} style={styles.expenseRow}>
+              <View key={expense.id} style={[styles.expenseRow, { backgroundColor: C.card }]}>
                 <View style={styles.expenseInfo}>
-                  <Text style={styles.expenseCategory}>
+                  <Text style={[styles.expenseCategory, { color: C.textPrimary }]}>
                     {expense.category}
                   </Text>
-                  <Text style={styles.expenseAmount}>
+                  <Text style={[styles.expenseAmount, { color: C.textPrimary }]}>
                     {formatCurrency(expense.amount, eventCurrency)}
                   </Text>
                 </View>
@@ -311,7 +313,7 @@ export default function EventDetailScreen({ navigation, route }) {
                   <Ionicons
                     name="trash-outline"
                     size={18}
-                    color={COLORS.expense}
+                    color={C.expense}
                   />
                 </TouchableOpacity>
               </View>
@@ -321,26 +323,26 @@ export default function EventDetailScreen({ navigation, route }) {
 
         {/* Sales Breakdown */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>
             Sales ({eventSales.length} transaction
             {eventSales.length !== 1 ? "s" : ""})
           </Text>
 
           {eventSales.length === 0 ? (
-            <View style={styles.emptySection}>
+            <View style={[styles.emptySection, { backgroundColor: C.card }]}>
               <Ionicons
                 name="cart-outline"
                 size={32}
-                color={COLORS.textSecondary}
+                color={C.textSecondary}
               />
-              <Text style={styles.emptySectionText}>
+              <Text style={[styles.emptySectionText, { color: C.textSecondary }]}>
                 No sales during this event
               </Text>
             </View>
           ) : (
             salesByDate.map((group) => (
-              <View key={group.date} style={styles.salesDateGroup}>
-                <Text style={styles.salesDateHeader}>
+              <View key={group.date} style={[styles.salesDateGroup, { backgroundColor: C.card }]}>
+                <Text style={[styles.salesDateHeader, { color: C.textPrimary, backgroundColor: C.background }]}>
                   {formatDate(group.date)}
                 </Text>
                 {group.sales.map((sale, idx) => (
@@ -348,12 +350,12 @@ export default function EventDetailScreen({ navigation, route }) {
                     key={sale.id || idx}
                     style={[
                       styles.saleItem,
-                      idx < group.sales.length - 1 && styles.saleItemBorder,
+                      idx < group.sales.length - 1 && [styles.saleItemBorder, { borderBottomColor: C.background }],
                     ]}
                   >
                     <View style={styles.salesInfo}>
                       <View style={styles.saleTimeRow}>
-                        <Text style={styles.saleTime}>
+                        <Text style={[styles.saleTime, { color: C.textSecondary }]}>
                           {formatTime(sale.timestamp)}
                         </Text>
                         {sale.paymentMethod ? (
@@ -361,29 +363,29 @@ export default function EventDetailScreen({ navigation, route }) {
                             backgroundColor: sale.paymentMethod === "cash" ? "#FF950015" : "#4A90D915",
                           }]}>
                             <Text style={[styles.paymentPillText, {
-                              color: sale.paymentMethod === "cash" ? "#FF9500" : COLORS.primary,
+                              color: sale.paymentMethod === "cash" ? "#FF9500" : C.primary,
                             }]}>
                               {sale.paymentMethod === "cash" ? "Cash" : "QR"}
                             </Text>
                           </View>
                         ) : null}
                       </View>
-                      <Text style={styles.saleItems} numberOfLines={2}>
+                      <Text style={[styles.saleItems, { color: C.textPrimary }]} numberOfLines={2}>
                         {formatSaleItems(sale)}
                       </Text>
                     </View>
-                    <Text style={styles.salesAmount}>
+                    <Text style={[styles.salesAmount, { color: C.income }]}>
                       {formatCurrency(sale.total, eventCurrency)}
                     </Text>
                   </View>
                 ))}
-                <View style={styles.salesDayTotal}>
-                  <Text style={styles.salesMeta}>
+                <View style={[styles.salesDayTotal, { borderTopColor: C.background }]}>
+                  <Text style={[styles.salesMeta, { color: C.textSecondary }]}>
                     {group.sales.length} sale{group.sales.length !== 1 ? "s" : ""}
                     {" · "}
                     {group.totalItems} item{group.totalItems !== 1 ? "s" : ""}
                   </Text>
-                  <Text style={styles.salesAmount}>
+                  <Text style={[styles.salesAmount, { color: C.income }]}>
                     {formatCurrency(group.totalAmount, eventCurrency)}
                   </Text>
                 </View>
@@ -394,22 +396,22 @@ export default function EventDetailScreen({ navigation, route }) {
 
         {/* Notes & Review */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes & Review</Text>
+          <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Notes & Review</Text>
           <TextInput
-            style={styles.notesInput}
+            style={[styles.notesInput, { backgroundColor: C.card, color: C.textPrimary }]}
             value={notes}
             onChangeText={(text) => {
               setNotes(text);
               setNotesDirty(true);
             }}
             placeholder="Add your post-event review here..."
-            placeholderTextColor={COLORS.textSecondary}
+            placeholderTextColor={C.textSecondary}
             multiline
             textAlignVertical="top"
           />
           {notesDirty && (
             <TouchableOpacity
-              style={styles.saveNotesButton}
+              style={[styles.saveNotesButton, { backgroundColor: C.primary }]}
               onPress={handleSaveNotes}
             >
               <Text style={styles.saveNotesText}>Save Notes</Text>
@@ -440,7 +442,6 @@ export default function EventDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   centered: {
     flex: 1,
@@ -460,7 +461,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   container: {
     flex: 1,
@@ -468,7 +468,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   infoCard: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
     marginBottom: 12,
@@ -492,7 +491,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   cardsRow: {
     flexDirection: "row",
@@ -500,7 +498,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   netCard: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
     flexDirection: "row",
@@ -510,7 +507,6 @@ const styles = StyleSheet.create({
   },
   netLabel: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -529,29 +525,24 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     marginBottom: 12,
   },
   emptySection: {
     alignItems: "center",
     paddingVertical: 24,
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
   },
   emptySectionText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 8,
   },
   emptyText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   expenseRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.card,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -564,15 +555,12 @@ const styles = StyleSheet.create({
   },
   expenseCategory: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   expenseAmount: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
   },
   salesDateGroup: {
-    backgroundColor: COLORS.card,
     borderRadius: 8,
     marginBottom: 10,
     overflow: "hidden",
@@ -580,8 +568,6 @@ const styles = StyleSheet.create({
   salesDateHeader: {
     fontSize: SIZES.fontCaption,
     fontWeight: "700",
-    color: COLORS.textPrimary,
-    backgroundColor: COLORS.background,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -594,7 +580,6 @@ const styles = StyleSheet.create({
   },
   saleItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background,
   },
   saleTimeRow: {
     flexDirection: "row",
@@ -604,7 +589,6 @@ const styles = StyleSheet.create({
   },
   saleTime: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
   },
   paymentPill: {
     paddingHorizontal: 8,
@@ -617,7 +601,6 @@ const styles = StyleSheet.create({
   },
   saleItems: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   salesInfo: {
     flex: 1,
@@ -630,28 +613,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: COLORS.background,
   },
   salesMeta: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
   },
   salesAmount: {
     fontSize: SIZES.fontBody,
     fontWeight: "700",
-    color: COLORS.income,
   },
   notesInput: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
     minHeight: 120,
     lineHeight: 22,
   },
   saveNotesButton: {
-    backgroundColor: COLORS.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",

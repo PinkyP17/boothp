@@ -1,5 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { COLORS } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 import MoreMenuScreen from "../screens/MoreMenuScreen";
 import FinanceScreen from "../screens/FinanceScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -8,12 +8,14 @@ import AboutScreen from "../screens/AboutScreen";
 const Stack = createNativeStackNavigator();
 
 export default function MoreStack() {
+  const { colors: C } = useTheme();
+
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.background },
+        headerStyle: { backgroundColor: C.background },
         headerShadowVisible: false,
-        headerTintColor: COLORS.textPrimary,
+        headerTintColor: C.textPrimary,
         headerTitleStyle: { fontWeight: "600" },
       }}
     >

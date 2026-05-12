@@ -1,7 +1,9 @@
 import { StyleSheet, Text, ScrollView, TouchableOpacity } from "react-native";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export default function CategoryFilter({ categories, selected, onSelect }) {
+  const { colors: C } = useTheme();
   return (
     <ScrollView
       horizontal
@@ -14,11 +16,17 @@ export default function CategoryFilter({ categories, selected, onSelect }) {
         return (
           <TouchableOpacity
             key={category}
-            style={[styles.pill, isSelected && styles.pillSelected]}
+            style={[
+              styles.pill,
+              { backgroundColor: isSelected ? C.primary : C.card },
+            ]}
             onPress={() => onSelect(category)}
           >
             <Text
-              style={[styles.pillText, isSelected && styles.pillTextSelected]}
+              style={[
+                styles.pillText,
+                { color: isSelected ? "#FFFFFF" : C.textSecondary },
+              ]}
             >
               {category}
             </Text>
@@ -40,17 +48,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.card,
-  },
-  pillSelected: {
-    backgroundColor: COLORS.primary,
   },
   pillText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     fontWeight: "500",
-  },
-  pillTextSelected: {
-    color: "#FFFFFF",
   },
 });

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export const COLORS = {
+export const LIGHT_COLORS = {
   background: '#F5F5F5',
   card: '#FFFFFF',
   primary: '#4A90D9',
@@ -12,6 +12,23 @@ export const COLORS = {
   tabBar: '#FFFFFF',
   posButton: '#FF9500',
 };
+
+export const DARK_COLORS = {
+  background: '#121212',
+  card: '#1E1E1E',
+  primary: '#5A9FE8',
+  income: '#32D74B',
+  expense: '#FF453A',
+  profit: '#5A9FE8',
+  textPrimary: '#F2F2F7',
+  textSecondary: '#98989D',
+  tabBar: '#1C1C1E',
+  posButton: '#FF9F0A',
+};
+
+// Default export for backward compat — screens that haven't
+// migrated to useTheme() yet will still get light colors.
+export const COLORS = LIGHT_COLORS;
 
 export const SIZES = {
   padding: 16,

@@ -1,32 +1,34 @@
 import { StyleSheet, Text, View, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { SIZES, CARD_SHADOW } from "../constants/theme";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 const MENU_ITEMS = [
   {
     label: "Finance",
     icon: "stats-chart-outline",
     screen: "Finance",
-    color: COLORS.primary,
+    colorKey: "primary",
   },
   {
     label: "Settings",
     icon: "settings-outline",
     screen: "Settings",
-    color: COLORS.textSecondary,
+    colorKey: "textSecondary",
   },
   {
     label: "About the Developer",
     icon: "person-outline",
     screen: "About",
-    color: COLORS.textSecondary,
+    colorKey: "textSecondary",
   },
 ];
 
 export default function MoreMenuScreen({ navigation }) {
   const { logout } = useAuth();
+  const { colors: C } = useTheme();
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -36,41 +38,44 @@ export default function MoreMenuScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
       <View style={styles.container}>
-        <Text style={styles.title}>More</Text>
+        <Text style={[styles.title, { color: C.textPrimary }]}>More</Text>
 
-        <View style={[styles.menuCard, CARD_SHADOW]}>
-          {MENU_ITEMS.map((item, index) => (
-            <TouchableOpacity
-              key={item.screen}
-              style={[
-                styles.menuItem,
-                index < MENU_ITEMS.length - 1 && styles.menuItemBorder,
-              ]}
-              onPress={() => navigation.navigate(item.screen)}
-              activeOpacity={0.6}
-            >
-              <View
+        <View style={[styles.menuCard, CARD_SHADOW, { backgroundColor: C.card }]}>
+          {MENU_ITEMS.map((item, index) => {
+            const itemColor = C[item.colorKey];
+            return (
+              <TouchableOpacity
+                key={item.screen}
                 style={[
-                  styles.iconBox,
-                  { backgroundColor: item.color + "15" },
+                  styles.menuItem,
+                  index < MENU_ITEMS.length - 1 && styles.menuItemBorder,
                 ]}
+                onPress={() => navigation.navigate(item.screen)}
+                activeOpacity={0.6}
               >
-                <Ionicons name={item.icon} size={20} color={item.color} />
-              </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={COLORS.textSecondary}
-              />
-            </TouchableOpacity>
-          ))}
+                <View
+                  style={[
+                    styles.iconBox,
+                    { backgroundColor: itemColor + "15" },
+                  ]}
+                >
+                  <Ionicons name={item.icon} size={20} color={itemColor} />
+                </View>
+                <Text style={[styles.menuLabel, { color: C.textPrimary }]}>{item.label}</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={C.textSecondary}
+                />
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TouchableOpacity
-          style={[styles.logoutButton, CARD_SHADOW]}
+          style={[styles.logoutButton, CARD_SHADOW, { backgroundColor: C.card }]}
           onPress={handleLogout}
           activeOpacity={0.6}
         >
@@ -87,7 +92,6 @@ export default function MoreMenuScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -96,12 +100,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginTop: 8,
     marginBottom: 20,
   },
   menuCard: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     overflow: "hidden",
   },
@@ -127,12 +129,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: SIZES.fontBody,
     fontWeight: "500",
-    color: COLORS.textPrimary,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     paddingVertical: 14,
     paddingHorizontal: 16,

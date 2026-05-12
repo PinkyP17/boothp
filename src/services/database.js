@@ -64,6 +64,15 @@ export function initDatabase() {
     created_at TEXT NOT NULL
   )`);
 
+  db.runSync(`CREATE TABLE IF NOT EXISTS item_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER,
+    item_local_id TEXT,
+    image_uri TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`);
+
   db.runSync(`CREATE TABLE IF NOT EXISTS sync_queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entity_type TEXT NOT NULL,

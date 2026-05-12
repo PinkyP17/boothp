@@ -9,10 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { EXPENSE_CATEGORIES } from "../../data/mockData";
 
 export default function EventExpenseModal({ visible, onClose, onSave }) {
+  const { colors: C } = useTheme();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
 
@@ -35,30 +37,35 @@ export default function EventExpenseModal({ visible, onClose, onSave }) {
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.modal}>
-          <Text style={styles.title}>Add Expense</Text>
+        <View style={[styles.modal, { backgroundColor: C.card }]}>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Add Expense</Text>
 
-          <Text style={styles.label}>Amount</Text>
+          <Text style={[styles.label, { color: C.textSecondary }]}>Amount</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
             placeholder="0.00"
-            placeholderTextColor={COLORS.textSecondary}
+            placeholderTextColor={C.textSecondary}
           />
 
-          <Text style={styles.label}>Category</Text>
+          <Text style={[styles.label, { color: C.textSecondary }]}>Category</Text>
           <View style={styles.categoryRow}>
             {EXPENSE_CATEGORIES.map((cat) => (
               <TouchableOpacity
                 key={cat}
-                style={[styles.pill, category === cat && styles.pillSelected]}
+                style={[
+                  styles.pill,
+                  { backgroundColor: C.background },
+                  category === cat && { backgroundColor: C.primary },
+                ]}
                 onPress={() => setCategory(cat)}
               >
                 <Text
                   style={[
                     styles.pillText,
+                    { color: C.textSecondary },
                     category === cat && styles.pillTextSelected,
                   ]}
                 >
@@ -69,10 +76,16 @@ export default function EventExpenseModal({ visible, onClose, onSave }) {
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: C.background }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelText, { color: C.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: C.primary }]}
+              onPress={handleSave}
+            >
               <Text style={styles.saveText}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -89,7 +102,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: SIZES.padding,
@@ -99,24 +111,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 20,
   },
   label: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
     marginTop: 12,
   },
   input: {
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   categoryRow: {
     flexDirection: "row",
@@ -127,14 +135,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: COLORS.background,
-  },
-  pillSelected: {
-    backgroundColor: COLORS.primary,
   },
   pillText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     fontWeight: "500",
   },
   pillTextSelected: {
@@ -149,19 +152,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
     alignItems: "center",
   },
   cancelText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
   saveButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
   },
   saveText: {

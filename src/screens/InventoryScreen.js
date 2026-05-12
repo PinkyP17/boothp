@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../constants/theme";
+import { SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
+import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
@@ -25,6 +26,7 @@ import ConnectivityBanner from "../components/ConnectivityBanner";
 export default function InventoryScreen() {
   const { state, loadInventory, addInventoryItem, updateInventoryItem, restockItem } = useAppState();
   const { token } = useAuth();
+  const { colors: C } = useTheme();
   const { showToast } = useToast();
   const items = state.inventory;
 
@@ -92,7 +94,7 @@ export default function InventoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
       <ConnectivityBanner />
       <ScrollView
         style={styles.container}
@@ -105,27 +107,27 @@ export default function InventoryScreen() {
               await loadInventory(token);
               setRefreshing(false);
             }}
-            colors={[COLORS.primary]}
-            tintColor={COLORS.primary}
+            colors={[C.primary]}
+            tintColor={C.primary}
           />
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Inventory</Text>
-          <Text style={styles.subtitle}>{items.length} items</Text>
+          <Text style={[styles.title, { color: C.textPrimary }]}>Inventory</Text>
+          <Text style={[styles.subtitle, { color: C.textSecondary }]}>{items.length} items</Text>
         </View>
 
         <View style={styles.cardsRow}>
           <SummaryCard
             title="Total Stock"
             amount={totalItems}
-            color={COLORS.primary}
+            color={C.primary}
             format="number"
           />
           <SummaryCard
             title="Inventory Value"
             amount={inventoryValue}
-            color={COLORS.expense}
+            color={C.expense}
           />
         </View>
 
@@ -142,16 +144,16 @@ export default function InventoryScreen() {
 
         {state.isLoading && items.length === 0 ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
+            <ActivityIndicator size="large" color={C.primary} />
           </View>
         ) : filteredItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
               name="cube-outline"
               size={48}
-              color={COLORS.textSecondary}
+              color={C.textSecondary}
             />
-            <Text style={styles.emptyText}>No items found</Text>
+            <Text style={[styles.emptyText, { color: C.textSecondary }]}>No items found</Text>
           </View>
         ) : (
           filteredItems.map((item) => (
@@ -168,7 +170,7 @@ export default function InventoryScreen() {
       </ScrollView>
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: C.primary }]}
         onPress={openAddModal}
         activeOpacity={0.8}
       >
@@ -189,7 +191,6 @@ export default function InventoryScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -202,11 +203,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 4,
   },
   cardsRow: {
@@ -220,7 +219,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 12,
   },
   bottomSpacer: {
@@ -233,7 +231,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,

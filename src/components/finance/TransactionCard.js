@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
+import { SIZES, CARD_SHADOW } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -12,27 +13,28 @@ function formatDate(dateString) {
 }
 
 export default function TransactionCard({ transaction }) {
+  const { colors: C } = useTheme();
   const isIncome = transaction.type === "income";
 
   return (
-    <View style={[styles.card, CARD_SHADOW]}>
+    <View style={[styles.card, CARD_SHADOW, { backgroundColor: C.card }]}>
       <View
         style={[
           styles.iconBox,
-          { backgroundColor: (isIncome ? COLORS.income : COLORS.expense) + "15" },
+          { backgroundColor: (isIncome ? C.income : C.expense) + "15" },
         ]}
       >
         <Ionicons
           name={isIncome ? "arrow-up" : "arrow-down"}
           size={18}
-          color={isIncome ? COLORS.income : COLORS.expense}
+          color={isIncome ? C.income : C.expense}
         />
       </View>
       <View style={styles.info}>
-        <Text style={styles.description} numberOfLines={1}>
+        <Text style={[styles.description, { color: C.textPrimary }]} numberOfLines={1}>
           {transaction.description}
         </Text>
-        <Text style={styles.meta}>
+        <Text style={[styles.meta, { color: C.textSecondary }]}>
           {transaction.eventName ? `${transaction.eventName} · ` : ""}
           {formatDate(transaction.date)}
         </Text>
@@ -40,7 +42,7 @@ export default function TransactionCard({ transaction }) {
       <Text
         style={[
           styles.amount,
-          { color: isIncome ? COLORS.income : COLORS.expense },
+          { color: isIncome ? C.income : C.expense },
         ]}
       >
         {isIncome ? "+" : "-"}${transaction.amount.toFixed(2)}
@@ -53,7 +55,6 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: 12,
     marginBottom: 8,
@@ -73,12 +74,10 @@ const styles = StyleSheet.create({
   description: {
     fontSize: SIZES.fontBody,
     fontWeight: "500",
-    color: COLORS.textPrimary,
     marginBottom: 2,
   },
   meta: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
   },
   amount: {
     fontSize: SIZES.fontBody,

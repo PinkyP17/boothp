@@ -1,13 +1,8 @@
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
+import { SIZES, CARD_SHADOW } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { getEventStatus } from "../../utils/eventStatus";
 import { formatCurrency } from "../../utils/formatCurrency";
-
-const STATUS_COLORS = {
-  upcoming: COLORS.primary,
-  active: COLORS.income,
-  past: COLORS.textSecondary,
-};
 
 function formatDate(dateString) {
   const [year, month, day] = dateString.split("-");
@@ -34,8 +29,16 @@ function formatDateRange(date, endDate) {
 }
 
 export default function EventTimelineCard({ event, onPress, isLast }) {
+  const { colors: C } = useTheme();
+
+  const STATUS_COLORS = {
+    upcoming: C.primary,
+    active: C.income,
+    past: C.textSecondary,
+  };
+
   const status = getEventStatus(event);
-  const dotColor = STATUS_COLORS[status] || COLORS.textSecondary;
+  const dotColor = STATUS_COLORS[status] || C.textSecondary;
   const isActive = status === "active";
   const totalExpenses = event.expenses.reduce(
     (sum, exp) => sum + exp.amount,
@@ -57,9 +60,16 @@ export default function EventTimelineCard({ event, onPress, isLast }) {
       </View>
 
       {/* Card content */}
-      <View style={[styles.card, CARD_SHADOW, isActive && styles.activeCard]}>
+      <View
+        style={[
+          styles.card,
+          CARD_SHADOW,
+          { backgroundColor: C.card },
+          isActive && { borderWidth: 1.5, borderColor: C.income + "50" },
+        ]}
+      >
         <View style={styles.topRow}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: C.textPrimary }]} numberOfLines={1}>
             {event.name}
           </Text>
           <View
@@ -71,15 +81,15 @@ export default function EventTimelineCard({ event, onPress, isLast }) {
           </View>
         </View>
 
-        <Text style={styles.date}>
+        <Text style={[styles.date, { color: C.primary }]}>
           {formatDateRange(event.date, event.endDate)}
         </Text>
-        <Text style={styles.location}>{event.location}</Text>
+        <Text style={[styles.location, { color: C.textSecondary }]}>{event.location}</Text>
 
         {totalExpenses > 0 && (
-          <View style={styles.expenseRow}>
-            <Text style={styles.expenseLabel}>Expenses:</Text>
-            <Text style={styles.expenseAmount}>
+          <View style={[styles.expenseRow, { borderTopColor: C.background }]}>
+            <Text style={[styles.expenseLabel, { color: C.textSecondary }]}>Expenses:</Text>
+            <Text style={[styles.expenseAmount, { color: C.expense }]}>
               {formatCurrency(totalExpenses, event.currency || "MYR")}
             </Text>
           </View>
@@ -113,15 +123,10 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: SIZES.padding,
     marginBottom: 12,
     marginLeft: 8,
-  },
-  activeCard: {
-    borderWidth: 1.5,
-    borderColor: COLORS.income + "50",
   },
   topRow: {
     flexDirection: "row",
@@ -132,7 +137,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
     flex: 1,
     marginRight: 8,
   },
@@ -147,28 +151,23 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.primary,
     marginBottom: 2,
   },
   location: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     marginBottom: 8,
   },
   expenseRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     borderTopWidth: 1,
-    borderTopColor: COLORS.background,
     paddingTop: 8,
   },
   expenseLabel: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
   },
   expenseAmount: {
     fontSize: SIZES.fontCaption,
     fontWeight: "600",
-    color: COLORS.expense,
   },
 });

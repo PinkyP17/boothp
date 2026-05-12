@@ -1,24 +1,27 @@
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
+import { SIZES, CARD_SHADOW } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export default function AboutScreen() {
+  const { colors: C } = useTheme();
+
   return (
-    <SafeAreaView style={styles.safe} edges={["bottom"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]} edges={["bottom"]}>
       <View style={styles.container}>
-        <View style={[styles.card, CARD_SHADOW]}>
+        <View style={[styles.card, CARD_SHADOW, { backgroundColor: C.card }]}>
           <View style={styles.avatarBox}>
-            <Ionicons name="person-circle" size={64} color={COLORS.primary} />
+            <Ionicons name="person-circle" size={64} color={C.primary} />
           </View>
-          <Text style={styles.name}>PinkyP</Text>
-          <Text style={styles.bio}>
+          <Text style={[styles.name, { color: C.textPrimary }]}>PinkyP</Text>
+          <Text style={[styles.bio, { color: C.textSecondary }]}>
             Artist and a Software Engineer that creates this app to manage my
             booth in convention.
           </Text>
         </View>
 
-        <Text style={styles.comingSoon}>
+        <Text style={[styles.comingSoon, { color: C.textSecondary }]}>
           Full about page coming in a future update.
         </Text>
       </View>
@@ -29,7 +32,6 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -37,7 +39,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   card: {
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: 24,
     alignItems: "center",
@@ -48,18 +49,15 @@ const styles = StyleSheet.create({
   name: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   bio: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     textAlign: "center",
     lineHeight: 22,
   },
   comingSoon: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textAlign: "center",
     marginTop: 24,
   },

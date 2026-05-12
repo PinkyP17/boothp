@@ -1,27 +1,30 @@
 import { StyleSheet, Text, View } from "react-native";
-import { COLORS, SIZES, CARD_SHADOW } from "../../constants/theme";
+import { SIZES, CARD_SHADOW } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function FinanceSummary({ income, expenses, netProfit }) {
+  const { colors: C } = useTheme();
+
   return (
     <View style={styles.container}>
-      <View style={[styles.box, CARD_SHADOW]}>
-        <Text style={styles.label}>Income</Text>
-        <Text style={[styles.value, { color: COLORS.income }]}>
+      <View style={[styles.box, CARD_SHADOW, { backgroundColor: C.card }]}>
+        <Text style={[styles.label, { color: C.textSecondary }]}>Income</Text>
+        <Text style={[styles.value, { color: C.income }]}>
           ${income.toFixed(2)}
         </Text>
       </View>
-      <View style={[styles.box, CARD_SHADOW]}>
-        <Text style={styles.label}>Expenses</Text>
-        <Text style={[styles.value, { color: COLORS.expense }]}>
+      <View style={[styles.box, CARD_SHADOW, { backgroundColor: C.card }]}>
+        <Text style={[styles.label, { color: C.textSecondary }]}>Expenses</Text>
+        <Text style={[styles.value, { color: C.expense }]}>
           ${expenses.toFixed(2)}
         </Text>
       </View>
-      <View style={[styles.box, CARD_SHADOW]}>
-        <Text style={styles.label}>Net</Text>
+      <View style={[styles.box, CARD_SHADOW, { backgroundColor: C.card }]}>
+        <Text style={[styles.label, { color: C.textSecondary }]}>Net</Text>
         <Text
           style={[
             styles.value,
-            { color: netProfit >= 0 ? COLORS.income : COLORS.expense },
+            { color: netProfit >= 0 ? C.income : C.expense },
           ]}
         >
           ${netProfit.toFixed(2)}
@@ -39,14 +42,12 @@ const styles = StyleSheet.create({
   },
   box: {
     flex: 1,
-    backgroundColor: COLORS.card,
     borderRadius: SIZES.cardRadius,
     padding: 12,
     alignItems: "center",
   },
   label: {
     fontSize: 11,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 4,

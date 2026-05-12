@@ -7,14 +7,9 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { formatCurrency } from "../../utils/formatCurrency";
-
-const STATUS_COLORS = {
-  upcoming: COLORS.primary,
-  active: COLORS.income,
-  past: COLORS.textSecondary,
-};
 
 function formatDate(dateString) {
   const [year, month, day] = dateString.split("-");
@@ -48,9 +43,17 @@ export default function EventDetailModal({
   onDeleteExpense,
   onEdit,
 }) {
+  const { colors: C } = useTheme();
+
   if (!event) return null;
 
-  const dotColor = STATUS_COLORS[event.status] || COLORS.textSecondary;
+  const STATUS_COLORS = {
+    upcoming: C.primary,
+    active: C.income,
+    past: C.textSecondary,
+  };
+
+  const dotColor = STATUS_COLORS[event.status] || C.textSecondary;
   const totalExpenses = event.expenses.reduce(
     (sum, exp) => sum + exp.amount,
     0,
@@ -59,16 +62,16 @@ export default function EventDetailModal({
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.headerRow}>
-              <Text style={styles.title}>{event.name}</Text>
+              <Text style={[styles.title, { color: C.textPrimary }]}>{event.name}</Text>
               <TouchableOpacity onPress={onEdit}>
                 <Ionicons
                   name="pencil-outline"
                   size={20}
-                  color={COLORS.primary}
+                  color={C.primary}
                 />
               </TouchableOpacity>
             </View>
@@ -81,18 +84,18 @@ export default function EventDetailModal({
               </Text>
             </View>
 
-            <Text style={styles.date}>
+            <Text style={[styles.date, { color: C.primary }]}>
               {formatDateRange(event.date, event.endDate)}
             </Text>
-            <Text style={styles.location}>{event.location}</Text>
+            <Text style={[styles.location, { color: C.textSecondary }]}>{event.location}</Text>
 
             {/* Divider */}
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: C.background }]} />
 
             {/* Expenses Section */}
             <View style={styles.expenseHeader}>
-              <Text style={styles.sectionTitle}>Expenses</Text>
-              <Text style={styles.totalAmount}>
+              <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Expenses</Text>
+              <Text style={[styles.totalAmount, { color: C.expense }]}>
                 {formatCurrency(totalExpenses, event.currency || "MYR")}
               </Text>
             </View>
@@ -102,18 +105,21 @@ export default function EventDetailModal({
                 <Ionicons
                   name="receipt-outline"
                   size={36}
-                  color={COLORS.textSecondary}
+                  color={C.textSecondary}
                 />
-                <Text style={styles.emptyText}>No expenses yet</Text>
+                <Text style={[styles.emptyText, { color: C.textSecondary }]}>No expenses yet</Text>
               </View>
             ) : (
               event.expenses.map((expense) => (
-                <View key={expense.id} style={styles.expenseRow}>
+                <View
+                  key={expense.id}
+                  style={[styles.expenseRow, { backgroundColor: C.background }]}
+                >
                   <View style={styles.expenseInfo}>
-                    <Text style={styles.expenseCategory}>
+                    <Text style={[styles.expenseCategory, { color: C.textPrimary }]}>
                       {expense.category}
                     </Text>
-                    <Text style={styles.expenseAmount}>
+                    <Text style={[styles.expenseAmount, { color: C.textPrimary }]}>
                       {formatCurrency(expense.amount, event.currency || "MYR")}
                     </Text>
                   </View>
@@ -124,7 +130,7 @@ export default function EventDetailModal({
                     <Ionicons
                       name="trash-outline"
                       size={18}
-                      color={COLORS.expense}
+                      color={C.expense}
                     />
                   </TouchableOpacity>
                 </View>
@@ -133,21 +139,24 @@ export default function EventDetailModal({
 
             {/* Add Expense Button */}
             <TouchableOpacity
-              style={styles.addExpenseButton}
+              style={[styles.addExpenseButton, { borderColor: C.primary + "40" }]}
               onPress={onAddExpense}
             >
               <Ionicons
                 name="add-circle-outline"
                 size={20}
-                color={COLORS.primary}
+                color={C.primary}
               />
-              <Text style={styles.addExpenseText}>Add Expense</Text>
+              <Text style={[styles.addExpenseText, { color: C.primary }]}>Add Expense</Text>
             </TouchableOpacity>
           </ScrollView>
 
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeText}>Close</Text>
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: C.background }]}
+            onPress={onClose}
+          >
+            <Text style={[styles.closeText, { color: C.textSecondary }]}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -162,7 +171,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: SIZES.padding,
@@ -179,7 +187,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     flex: 1,
     marginRight: 12,
   },
@@ -196,16 +203,13 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: SIZES.fontBody,
-    color: COLORS.primary,
     marginBottom: 4,
   },
   location: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.background,
     marginVertical: 20,
   },
   expenseHeader: {
@@ -217,12 +221,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "600",
-    color: COLORS.textPrimary,
   },
   totalAmount: {
     fontSize: SIZES.fontSubtitle,
     fontWeight: "700",
-    color: COLORS.expense,
   },
   emptyState: {
     alignItems: "center",
@@ -230,14 +232,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginTop: 8,
   },
   expenseRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -250,12 +250,10 @@ const styles = StyleSheet.create({
   },
   expenseCategory: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   expenseAmount: {
     fontSize: SIZES.fontBody,
     fontWeight: "600",
-    color: COLORS.textPrimary,
   },
   addExpenseButton: {
     flexDirection: "row",
@@ -265,25 +263,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.primary + "40",
     borderStyle: "dashed",
     marginTop: 8,
   },
   addExpenseText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.primary,
     fontWeight: "500",
   },
   closeButton: {
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
     alignItems: "center",
     marginTop: 16,
   },
   closeText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
 });

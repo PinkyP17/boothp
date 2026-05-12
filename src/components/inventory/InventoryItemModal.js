@@ -11,13 +11,16 @@ import {
   Platform,
   Image,
   Alert,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SIZES } from "../../constants/theme";
+import { SIZES } from "../../constants/theme";
+import { useTheme } from "../../context/ThemeContext";
 import { CATEGORIES } from "../../data/mockData";
-import { pickImage, saveImageLocally } from "../../services/imageService";
+import { pickImage, saveImageLocally, deleteImage } from "../../services/imageService";
 
 const editableCategories = CATEGORIES.filter((c) => c !== "All");
+const MAX_IMAGES = 5;
 
 const emptyForm = {
   name: "",
@@ -25,7 +28,7 @@ const emptyForm = {
   productionCost: "",
   sellingPrice: "",
   stock: "",
-  imageUri: null,
+  images: [],
 };
 
 export default function InventoryItemModal({
@@ -35,6 +38,7 @@ export default function InventoryItemModal({
   item,
   mode,
 }) {
+  const { colors: C } = useTheme();
   const [form, setForm] = useState(emptyForm);
   const [restockQty, setRestockQty] = useState("");
   const [restockCost, setRestockCost] = useState("");
@@ -43,13 +47,18 @@ export default function InventoryItemModal({
     if (mode === "add") {
       setForm(emptyForm);
     } else if (mode === "edit" && item) {
+      const existingImages = item.images && item.images.length > 0
+        ? [...item.images]
+        : item.imageUri
+          ? [item.imageUri]
+          : [];
       setForm({
         name: item.name,
         category: item.category,
         productionCost: item.productionCost.toString(),
         sellingPrice: item.sellingPrice.toString(),
         stock: item.stock.toString(),
-        imageUri: item.imageUri || null,
+        images: existingImages,
       });
     } else if (mode === "restock") {
       setRestockQty("");
@@ -81,13 +90,19 @@ export default function InventoryItemModal({
         productionCost: parseFloat(form.productionCost) || 0,
         sellingPrice: parseFloat(form.sellingPrice) || 0,
         stock: parseInt(form.stock, 10) || 0,
-        imageUri: form.imageUri,
+        images: form.images,
+        imageUri: form.images[0] || null,
       });
     }
     onClose();
   };
 
-  const handlePickImage = () => {
+  const handleAddImage = () => {
+    if (form.images.length >= MAX_IMAGES) {
+      Alert.alert("Limit Reached", `You can add up to ${MAX_IMAGES} photos per item.`);
+      return;
+    }
+
     Alert.alert("Add Photo", "Choose a source", [
       {
         text: "Take Photo",
@@ -96,7 +111,7 @@ export default function InventoryItemModal({
           if (uri) {
             const itemId = item?.id || Date.now().toString();
             const saved = await saveImageLocally(uri, itemId);
-            setForm({ ...form, imageUri: saved });
+            setForm((prev) => ({ ...prev, images: [...prev.images, saved] }));
           }
         },
       },
@@ -107,7 +122,7 @@ export default function InventoryItemModal({
           if (uri) {
             const itemId = item?.id || Date.now().toString();
             const saved = await saveImageLocally(uri, itemId);
-            setForm({ ...form, imageUri: saved });
+            setForm((prev) => ({ ...prev, images: [...prev.images, saved] }));
           }
         },
       },
@@ -115,102 +130,137 @@ export default function InventoryItemModal({
     ]);
   };
 
+  const handleRemoveImage = (index) => {
+    Alert.alert("Remove Photo", "Are you sure you want to remove this photo?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          const removed = form.images[index];
+          setForm((prev) => ({
+            ...prev,
+            images: prev.images.filter((_, i) => i !== index),
+          }));
+          deleteImage(removed);
+        },
+      },
+    ]);
+  };
+
+  const renderImageItem = ({ item: uri, index }) => (
+    <View style={styles.imageThumbWrapper}>
+      <Image source={{ uri }} style={styles.imageThumb} />
+      <TouchableOpacity
+        style={styles.removeImageBtn}
+        onPress={() => handleRemoveImage(index)}
+      >
+        <Ionicons name="close-circle" size={22} color="#FF3B30" />
+      </TouchableOpacity>
+      {index === 0 && (
+        <View style={[styles.primaryBadge, { backgroundColor: C.primary }]}>
+          <Text style={styles.primaryBadgeText}>Main</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, { color: C.textPrimary }]}>{title}</Text>
 
             {mode === "restock" ? (
               <>
-                <Text style={styles.stockInfo}>
+                <Text style={[styles.stockInfo, { color: C.textSecondary }]}>
                   Current stock: {item?.stock}
                 </Text>
 
-                <Text style={styles.label}>Quantity to Add</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Quantity to Add</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
                   value={restockQty}
                   onChangeText={setRestockQty}
                   keyboardType="number-pad"
                   placeholder="e.g. 50"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
 
-                <Text style={styles.label}>Total Cost for This Batch</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Total Cost for This Batch</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
                   value={restockCost}
                   onChangeText={setRestockCost}
                   keyboardType="decimal-pad"
                   placeholder="e.g. 75.00"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
 
-                <View style={styles.noteBox}>
-                  <Text style={styles.noteText}>
+                <View style={[styles.noteBox, { backgroundColor: C.primary + "10" }]}>
+                  <Text style={[styles.noteText, { color: C.primary }]}>
                     This will be logged as a Production/Restock expense.
                   </Text>
                 </View>
               </>
             ) : (
               <>
-                <TouchableOpacity
-                  style={styles.imagePicker}
-                  onPress={handlePickImage}
-                  activeOpacity={0.7}
-                >
-                  {form.imageUri ? (
-                    <View style={styles.imagePreviewWrapper}>
-                      <Image
-                        source={{ uri: form.imageUri }}
-                        style={styles.imagePreview}
-                      />
-                      <View style={styles.changeOverlay}>
-                        <Text style={styles.changeText}>Change</Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={styles.imagePlaceholder}>
-                      <Ionicons
-                        name="camera-outline"
-                        size={32}
-                        color={COLORS.textSecondary}
-                      />
-                      <Text style={styles.imagePlaceholderText}>Add Photo</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                {/* Multi-image gallery */}
+                <View style={styles.imageSection}>
+                  <FlatList
+                    data={form.images}
+                    renderItem={renderImageItem}
+                    keyExtractor={(uri, i) => `${uri}-${i}`}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    ListFooterComponent={
+                      form.images.length < MAX_IMAGES ? (
+                        <TouchableOpacity
+                          style={[styles.addImageBtn, { backgroundColor: C.background, borderColor: C.textSecondary + "40" }]}
+                          onPress={handleAddImage}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="camera-outline" size={28} color={C.textSecondary} />
+                          <Text style={[styles.addImageText, { color: C.textSecondary }]}>
+                            {form.images.length === 0 ? "Add Photos" : `${form.images.length}/${MAX_IMAGES}`}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null
+                    }
+                    contentContainerStyle={styles.imageList}
+                  />
+                </View>
 
-                <Text style={styles.label}>Item Name</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Item Name</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
                   value={form.name}
                   onChangeText={(text) => setForm({ ...form, name: text })}
                   placeholder="e.g. Gojo Print A4"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
 
-                <Text style={styles.label}>Category</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Category</Text>
                 <View style={styles.categoryRow}>
                   {editableCategories.map((cat) => (
                     <TouchableOpacity
                       key={cat}
                       style={[
                         styles.categoryPill,
-                        form.category === cat && styles.categoryPillSelected,
+                        { backgroundColor: C.background },
+                        form.category === cat && { backgroundColor: C.primary },
                       ]}
                       onPress={() => setForm({ ...form, category: cat })}
                     >
                       <Text
                         style={[
                           styles.categoryPillText,
-                          form.category === cat &&
-                            styles.categoryPillTextSelected,
+                          { color: C.textSecondary },
+                          form.category === cat && { color: "#FFFFFF" },
                         ]}
                       >
                         {cat}
@@ -219,38 +269,34 @@ export default function InventoryItemModal({
                   ))}
                 </View>
 
-                <Text style={styles.label}>Production Cost</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Production Cost</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
                   value={form.productionCost}
-                  onChangeText={(text) =>
-                    setForm({ ...form, productionCost: text })
-                  }
+                  onChangeText={(text) => setForm({ ...form, productionCost: text })}
                   keyboardType="decimal-pad"
                   placeholder="0.00"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
 
-                <Text style={styles.label}>Selling Price</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Selling Price</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
                   value={form.sellingPrice}
-                  onChangeText={(text) =>
-                    setForm({ ...form, sellingPrice: text })
-                  }
+                  onChangeText={(text) => setForm({ ...form, sellingPrice: text })}
                   keyboardType="decimal-pad"
                   placeholder="0.00"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
 
-                <Text style={styles.label}>Stock Count</Text>
+                <Text style={[styles.label, { color: C.textSecondary }]}>Stock Count</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: C.background, color: C.textPrimary }]}
                   value={form.stock}
                   onChangeText={(text) => setForm({ ...form, stock: text })}
                   keyboardType="number-pad"
                   placeholder="0"
-                  placeholderTextColor={COLORS.textSecondary}
+                  placeholderTextColor={C.textSecondary}
                 />
               </>
             )}
@@ -258,10 +304,10 @@ export default function InventoryItemModal({
 
           {/* Footer buttons */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity style={[styles.cancelButton, { backgroundColor: C.background }]} onPress={onClose}>
+              <Text style={[styles.cancelText, { color: C.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <TouchableOpacity style={[styles.saveButton, { backgroundColor: C.primary }]} onPress={handleSave}>
               <Text style={styles.saveText}>{saveLabel}</Text>
             </TouchableOpacity>
           </View>
@@ -278,7 +324,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modal: {
-    backgroundColor: COLORS.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: SIZES.padding,
@@ -289,29 +334,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.fontTitle,
     fontWeight: "700",
-    color: COLORS.textPrimary,
     marginBottom: 20,
   },
   stockInfo: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     marginBottom: 16,
   },
   label: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
     marginTop: 12,
   },
   input: {
-    backgroundColor: COLORS.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: SIZES.fontBody,
-    color: COLORS.textPrimary,
   },
   categoryRow: {
     flexDirection: "row",
@@ -322,73 +362,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: COLORS.background,
-  },
-  categoryPillSelected: {
-    backgroundColor: COLORS.primary,
   },
   categoryPillText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.textSecondary,
     fontWeight: "500",
   },
-  categoryPillTextSelected: {
-    color: "#FFFFFF",
+  // Multi-image styles
+  imageSection: {
+    marginBottom: 8,
   },
-  imagePicker: {
-    alignSelf: "center",
-    marginBottom: 16,
+  imageList: {
+    gap: 10,
+    paddingVertical: 4,
   },
-  imagePreviewWrapper: {
+  imageThumbWrapper: {
     position: "relative",
-    width: 100,
-    height: 100,
+    width: 88,
+    height: 88,
     borderRadius: 12,
     overflow: "hidden",
   },
-  imagePreview: {
-    width: 100,
-    height: 100,
+  imageThumb: {
+    width: 88,
+    height: 88,
   },
-  changeOverlay: {
+  removeImageBtn: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: 11,
+  },
+  primaryBadge: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingVertical: 4,
+    paddingVertical: 2,
     alignItems: "center",
   },
-  changeText: {
+  primaryBadgeText: {
     color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
   },
-  imagePlaceholder: {
-    width: 100,
-    height: 100,
+  addImageBtn: {
+    width: 88,
+    height: 88,
     borderRadius: 12,
-    backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: COLORS.textSecondary + "40",
     borderStyle: "dashed",
   },
-  imagePlaceholderText: {
+  addImageText: {
     fontSize: 11,
-    color: COLORS.textSecondary,
     marginTop: 4,
   },
   noteBox: {
-    backgroundColor: COLORS.primary + "10",
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
   },
   noteText: {
     fontSize: SIZES.fontCaption,
-    color: COLORS.primary,
     lineHeight: 18,
   },
   footer: {
@@ -400,19 +437,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.background,
     alignItems: "center",
   },
   cancelText: {
     fontSize: SIZES.fontBody,
-    color: COLORS.textSecondary,
     fontWeight: "600",
   },
   saveButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
   },
   saveText: {
