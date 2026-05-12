@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useMemo } from "react";
+import { createContext, useContext, useReducer, useMemo, useEffect } from "react";
+import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "../config/api";
 
 const AuthContext = createContext();
@@ -8,6 +9,7 @@ const initialState = {
   token: null,
   isAuthenticated: false,
   isLoading: false,
+  isRestoring: true,
   error: null,
 };
 
@@ -34,8 +36,20 @@ function authReducer(state, action) {
         error: action.payload,
       };
 
+    case "RESTORE_TOKEN":
+      return {
+        ...state,
+        user: action.payload.user,
+        token: action.payload.token,
+        isAuthenticated: true,
+        isRestoring: false,
+      };
+
+    case "RESTORE_DONE":
+      return { ...state, isRestoring: false };
+
     case "LOGOUT":
-      return { ...initialState };
+      return { ...initialState, isRestoring: false };
 
     case "CLEAR_ERROR":
       return { ...state, error: null };
@@ -47,6 +61,26 @@ function authReducer(state, action) {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // Restore token from SecureStore on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await SecureStore.getItemAsync("auth_token");
+        const userJson = await SecureStore.getItemAsync("auth_user");
+        if (token && userJson) {
+          dispatch({
+            type: "RESTORE_TOKEN",
+            payload: { token, user: JSON.parse(userJson) },
+          });
+        } else {
+          dispatch({ type: "RESTORE_DONE" });
+        }
+      } catch {
+        dispatch({ type: "RESTORE_DONE" });
+      }
+    })();
+  }, []);
 
   const actions = useMemo(
     () => ({
@@ -72,12 +106,12 @@ export function AuthProvider({ children }) {
             throw new Error(msg);
           }
 
+          const user = { id: data.userId, email: data.email };
+          await SecureStore.setItemAsync("auth_token", data.token);
+          await SecureStore.setItemAsync("auth_user", JSON.stringify(user));
           dispatch({
             type: "LOGIN_SUCCESS",
-            payload: {
-              user: { id: data.userId, email: data.email },
-              token: data.token,
-            },
+            payload: { user, token: data.token },
           });
         } catch (error) {
           dispatch({ type: "AUTH_ERROR", payload: error.message });
@@ -106,19 +140,21 @@ export function AuthProvider({ children }) {
             throw new Error(msg);
           }
 
+          const user = { id: data.userId, email: data.email, name };
+          await SecureStore.setItemAsync("auth_token", data.token);
+          await SecureStore.setItemAsync("auth_user", JSON.stringify(user));
           dispatch({
             type: "SIGNUP_SUCCESS",
-            payload: {
-              user: { id: data.userId, email: data.email, name },
-              token: data.token,
-            },
+            payload: { user, token: data.token },
           });
         } catch (error) {
           dispatch({ type: "AUTH_ERROR", payload: error.message });
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        await SecureStore.deleteItemAsync("auth_token");
+        await SecureStore.deleteItemAsync("auth_user");
         dispatch({ type: "LOGOUT" });
       },
 

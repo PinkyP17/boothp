@@ -18,6 +18,7 @@ import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
 import EventTimelineCard from "../components/event/EventTimelineCard";
 import EventModal from "../components/event/EventModal";
+import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function EventsScreen({ navigation }) {
   const {
@@ -88,6 +89,7 @@ export default function EventsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ConnectivityBanner />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Events</Text>

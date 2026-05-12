@@ -1,0 +1,91 @@
+import { openDatabaseSync } from "expo-sqlite";
+
+let db = null;
+
+export function initDatabase() {
+  db = openDatabaseSync("artistbooth.db");
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS inventory_items (
+    id INTEGER PRIMARY KEY,
+    local_id TEXT UNIQUE,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    production_cost REAL NOT NULL,
+    selling_price REAL NOT NULL,
+    stock INTEGER NOT NULL,
+    image_uri TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY,
+    local_id TEXT UNIQUE,
+    subtotal REAL NOT NULL,
+    discount_type TEXT,
+    discount_value REAL,
+    discount_amount REAL,
+    total REAL NOT NULL,
+    payment_method TEXT NOT NULL,
+    timestamp TEXT NOT NULL
+  )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS sale_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sale_id INTEGER,
+    sale_local_id TEXT,
+    item_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price REAL NOT NULL,
+    original_price REAL NOT NULL
+  )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY,
+    local_id TEXT UNIQUE,
+    name TEXT NOT NULL,
+    date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    location TEXT,
+    status TEXT NOT NULL,
+    currency TEXT DEFAULT 'MYR',
+    notes TEXT,
+    created_at TEXT NOT NULL
+  )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS event_expenses (
+    id INTEGER PRIMARY KEY,
+    local_id TEXT UNIQUE,
+    event_id INTEGER,
+    event_local_id TEXT,
+    category TEXT NOT NULL,
+    amount REAL NOT NULL,
+    created_at TEXT NOT NULL
+  )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS sync_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    entity_local_id TEXT,
+    entity_server_id INTEGER,
+    payload TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    retry_count INTEGER DEFAULT 0,
+    error_message TEXT
+  )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS sync_metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`);
+}
+
+export function getDb() {
+  if (!db) {
+    throw new Error("Database not initialized. Call initDatabase() first.");
+  }
+  return db;
+}

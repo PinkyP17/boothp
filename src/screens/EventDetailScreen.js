@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
 import EventModal from "../components/event/EventModal";
 import EventExpenseModal from "../components/event/EventExpenseModal";
+import ConnectivityBanner from "../components/ConnectivityBanner";
 
 const STATUS_COLORS = {
   upcoming: COLORS.primary,
@@ -174,6 +175,7 @@ export default function EventDetailScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ConnectivityBanner />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

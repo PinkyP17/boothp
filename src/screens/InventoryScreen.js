@@ -17,6 +17,7 @@ import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
 import InventoryItemCard from "../components/inventory/InventoryItemCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
+import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function InventoryScreen() {
   const { state, loadInventory, addInventoryItem, updateInventoryItem, restockItem } = useAppState();
@@ -83,6 +84,7 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ConnectivityBanner />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Inventory</Text>

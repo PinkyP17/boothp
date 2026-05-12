@@ -17,6 +17,7 @@ import POSItemTile from "../components/pos/POSItemTile";
 import CartBar from "../components/pos/CartBar";
 import CartModal from "../components/pos/CartModal";
 import PaymentModal from "../components/pos/PaymentModal";
+import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function POSScreen() {
   const { state, createSale, loadInventory } = useAppState();
@@ -133,6 +134,7 @@ export default function POSScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ConnectivityBanner />
       <View style={styles.header}>
         <Text style={styles.title}>POS</Text>
         {state.sales.length > 0 && (
