@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { useCallback, useState } from "react";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
 import EventCard from "../components/EventCard";
+import ConnectivityBanner from "../components/ConnectivityBanner";
 
 function formatTransactionDate(dateString) {
   if (!dateString) return "";
@@ -33,6 +34,8 @@ export default function DashboardScreen({ navigation }) {
   const { state, loadDashboard } = useAppState();
   const { token } = useAuth();
   const dashboard = state.dashboard;
+  const isLoading = state.isLoading && !dashboard;
+  const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -50,7 +53,23 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ConnectivityBanner />
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await loadDashboard(token);
+              setRefreshing(false);
+            }}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.greeting}>Welcome back!</Text>
           <Text style={styles.subtitle}>Your Dashboard</Text>
@@ -81,7 +100,9 @@ export default function DashboardScreen({ navigation }) {
         />
 
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
-        {recentTransactions.length === 0 ? (
+        {isLoading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ paddingVertical: 20 }} />
+        ) : recentTransactions.length === 0 ? (
           <Text style={styles.emptyText}>No transactions yet</Text>
         ) : (
           recentTransactions.map((tx) => {

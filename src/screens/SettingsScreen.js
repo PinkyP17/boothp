@@ -5,7 +5,7 @@ import { COLORS, SIZES, CARD_SHADOW } from "../constants/theme";
 
 const SETTINGS_ITEMS = [
   { label: "Theme", icon: "color-palette-outline", detail: "Light" },
-  { label: "Currency", icon: "cash-outline", detail: "USD ($)" },
+  { label: "Currency", icon: "cash-outline", detail: "Per-event" },
   { label: "Notifications", icon: "notifications-outline", detail: "Off" },
 ];
 

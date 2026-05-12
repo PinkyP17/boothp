@@ -116,6 +116,14 @@ async function pushEntry(token, entry, payload) {
       method = "DELETE";
       break;
     }
+    case "inventory_item:DELETE":
+      url = `${API_BASE_URL}/api/v1/inventory/${entity_server_id}`;
+      method = "DELETE";
+      break;
+    case "event:DELETE":
+      url = `${API_BASE_URL}/api/v1/events/${entity_server_id}`;
+      method = "DELETE";
+      break;
     default:
       return { success: false, error: `Unknown sync type: ${entity_type}:${operation}` };
   }

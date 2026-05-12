@@ -5,6 +5,8 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +14,7 @@ import { COLORS, SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
@@ -22,6 +25,7 @@ import ConnectivityBanner from "../components/ConnectivityBanner";
 export default function InventoryScreen() {
   const { state, loadInventory, addInventoryItem, updateInventoryItem, restockItem } = useAppState();
   const { token } = useAuth();
+  const { showToast } = useToast();
   const items = state.inventory;
 
   useEffect(() => {
@@ -30,6 +34,7 @@ export default function InventoryScreen() {
     }
   }, [token]);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [modalVisible, setModalVisible] = useState(false);
@@ -70,22 +75,41 @@ export default function InventoryScreen() {
   };
 
   const handleSave = async (data) => {
+    let result;
     if (modalMode === "add") {
-      await addInventoryItem(token, data);
+      result = await addInventoryItem(token, data);
     } else if (modalMode === "edit") {
-      await updateInventoryItem(token, data.id, data);
+      result = await updateInventoryItem(token, data.id, data);
     } else if (modalMode === "restock") {
-      await restockItem(token, data.itemId, {
+      result = await restockItem(token, data.itemId, {
         quantity: data.quantity,
         cost: data.cost,
       });
+    }
+    if (result && !result.success) {
+      showToast(result.message || "Failed to save item", "error");
     }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ConnectivityBanner />
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await loadInventory(token);
+              setRefreshing(false);
+            }}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Inventory</Text>
           <Text style={styles.subtitle}>{items.length} items</Text>
@@ -116,7 +140,11 @@ export default function InventoryScreen() {
           onSelect={setSelectedCategory}
         />
 
-        {filteredItems.length === 0 ? (
+        {state.isLoading && items.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : filteredItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
               name="cube-outline"

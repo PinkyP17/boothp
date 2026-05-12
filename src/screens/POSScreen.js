@@ -5,6 +5,7 @@ import {
   View,
   ScrollView,
   LayoutAnimation,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +13,7 @@ import { COLORS, SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import CategoryFilter from "../components/CategoryFilter";
 import POSItemTile from "../components/pos/POSItemTile";
 import CartBar from "../components/pos/CartBar";
@@ -22,8 +24,10 @@ import ConnectivityBanner from "../components/ConnectivityBanner";
 export default function POSScreen() {
   const { state, createSale, loadInventory } = useAppState();
   const { token } = useAuth();
+  const { showToast } = useToast();
   const inventoryItems = state.inventory;
 
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [cart, setCart] = useState([]);
   const [discount, setDiscount] = useState({ type: "percent", value: 0 });
@@ -122,6 +126,8 @@ export default function POSScreen() {
       setPaymentModalVisible(false);
       setCartModalVisible(false);
       setShowSuccess(true);
+    } else if (result) {
+      showToast(result.message || "Failed to complete sale", "error");
     }
   };
 
@@ -156,6 +162,18 @@ export default function POSScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await loadInventory(token);
+              setRefreshing(false);
+            }}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         {filteredItems.map((item) => {
           const cartItem = cart.find((c) => c.itemId === item.id);

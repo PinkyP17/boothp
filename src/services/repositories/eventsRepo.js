@@ -106,6 +106,18 @@ export function deleteExpense(expenseId) {
   db.runSync("DELETE FROM event_expenses WHERE id = ?", [expenseId]);
 }
 
+export function deleteEvent(eventId) {
+  const db = getDb();
+  db.runSync("DELETE FROM event_expenses WHERE event_id = ?", [eventId]);
+  db.runSync("DELETE FROM events WHERE id = ?", [eventId]);
+}
+
+export function deleteByLocalId(localId) {
+  const db = getDb();
+  db.runSync("DELETE FROM event_expenses WHERE event_local_id = ?", [localId]);
+  db.runSync("DELETE FROM events WHERE local_id = ?", [localId]);
+}
+
 export function updateServerId(localId, serverId) {
   const db = getDb();
   db.runSync("UPDATE events SET id = ? WHERE local_id = ?", [serverId, localId]);

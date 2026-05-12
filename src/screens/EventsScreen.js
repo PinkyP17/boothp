@@ -5,6 +5,8 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -13,6 +15,7 @@ import { COLORS, SIZES } from "../constants/theme";
 import { EVENT_STATUSES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
@@ -28,6 +31,7 @@ export default function EventsScreen({ navigation }) {
     updateEvent,
   } = useAppState();
   const { token } = useAuth();
+  const { showToast } = useToast();
   const events = state.events;
 
   useEffect(() => {
@@ -36,6 +40,7 @@ export default function EventsScreen({ navigation }) {
     }
   }, [token]);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
 
@@ -80,17 +85,36 @@ export default function EventsScreen({ navigation }) {
   };
 
   const handleSaveEvent = async (eventData) => {
+    let result;
     if (eventModalMode === "add") {
-      await addEvent(token, eventData);
+      result = await addEvent(token, eventData);
     } else {
-      await updateEvent(token, eventData.id, eventData);
+      result = await updateEvent(token, eventData.id, eventData);
+    }
+    if (result && !result.success) {
+      showToast(result.message || "Failed to save event", "error");
     }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <ConnectivityBanner />
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await loadEvents(token);
+              setRefreshing(false);
+            }}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Events</Text>
           <Text style={styles.subtitle}>{events.length} events</Text>
@@ -121,7 +145,11 @@ export default function EventsScreen({ navigation }) {
           onSelect={setSelectedStatus}
         />
 
-        {filteredEvents.length === 0 ? (
+        {state.isLoading && events.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : filteredEvents.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
               name="calendar-outline"

@@ -11,10 +11,10 @@ export default function AboutScreen() {
           <View style={styles.avatarBox}>
             <Ionicons name="person-circle" size={64} color={COLORS.primary} />
           </View>
-          <Text style={styles.name}>Your Name</Text>
+          <Text style={styles.name}>PinkyP</Text>
           <Text style={styles.bio}>
-            Artist & developer building tools to help creators manage their
-            convention booths.
+            Artist and a Software Engineer that creates this app to manage my
+            booth in convention.
           </Text>
         </View>
 

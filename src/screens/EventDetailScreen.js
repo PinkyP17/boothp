@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -16,6 +17,7 @@ import { getEventStatus } from "../utils/eventStatus";
 import { formatCurrency } from "../utils/formatCurrency";
 import { useAppState } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
 import EventModal from "../components/event/EventModal";
 import EventExpenseModal from "../components/event/EventExpenseModal";
@@ -81,12 +83,14 @@ function groupSalesByDate(sales) {
 
 export default function EventDetailScreen({ navigation, route }) {
   const { eventId } = route.params;
-  const { state, updateEvent, addEventExpense, deleteEventExpense, loadSales } =
+  const { state, updateEvent, addEventExpense, deleteEventExpense, loadSales, loadEvents } =
     useAppState();
   const { token } = useAuth();
 
   const event = state.events.find((e) => e.id === eventId);
+  const { showToast } = useToast();
 
+  const [refreshing, setRefreshing] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [expenseModalVisible, setExpenseModalVisible] = useState(false);
   const [notes, setNotes] = useState(event?.notes || "");
@@ -141,11 +145,17 @@ export default function EventDetailScreen({ navigation, route }) {
   const salesByDate = groupSalesByDate(eventSales);
 
   const handleEditSave = async (eventData) => {
-    await updateEvent(token, eventData.id, eventData);
+    const result = await updateEvent(token, eventData.id, eventData);
+    if (result && !result.success) {
+      showToast(result.message || "Failed to update event", "error");
+    }
   };
 
   const handleAddExpense = async (expense) => {
-    await addEventExpense(token, event.id, expense);
+    const result = await addEventExpense(token, event.id, expense);
+    if (result && !result.success) {
+      showToast(result.message || "Failed to add expense", "error");
+    }
   };
 
   const handleDeleteExpense = (expenseId) => {
@@ -195,6 +205,18 @@ export default function EventDetailScreen({ navigation, route }) {
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await Promise.all([loadEvents(token), loadSales(token)]);
+              setRefreshing(false);
+            }}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         {/* Event Info */}
         <View style={[styles.infoCard, CARD_SHADOW]}>

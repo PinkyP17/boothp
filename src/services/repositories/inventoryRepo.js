@@ -64,3 +64,13 @@ export function updateStock(itemId, newStock) {
     [newStock, itemId]
   );
 }
+
+export function deleteItem(itemId) {
+  const db = getDb();
+  db.runSync("DELETE FROM inventory_items WHERE id = ?", [itemId]);
+}
+
+export function deleteByLocalId(localId) {
+  const db = getDb();
+  db.runSync("DELETE FROM inventory_items WHERE local_id = ?", [localId]);
+}

@@ -1,4 +1,5 @@
-import { createContext, useContext, useReducer, useMemo } from "react";
+import { createContext, useContext, useReducer, useMemo, useEffect, useRef, useCallback } from "react";
+import { AppState as RNAppState } from "react-native";
 
 import { API_BASE_URL } from "../config/api";
 import { isOnline } from "../services/connectivityService";
@@ -7,6 +8,7 @@ import * as salesRepo from "../services/repositories/salesRepo";
 import * as eventsRepo from "../services/repositories/eventsRepo";
 import * as syncQueueRepo from "../services/repositories/syncQueueRepo";
 import { syncAll } from "../services/syncEngine";
+import { useConnectivity } from "./ConnectivityContext";
 
 const AppContext = createContext();
 
@@ -19,6 +21,7 @@ const initialState = {
   sales: [],
   events: [],
   dashboard: null,
+  isLoading: false,
 };
 
 function appReducer(state, action) {
@@ -108,6 +111,21 @@ function appReducer(state, action) {
     case "SET_DASHBOARD":
       return { ...state, dashboard: action.payload };
 
+    case "DELETE_INVENTORY_ITEM":
+      return {
+        ...state,
+        inventory: state.inventory.filter((item) => item.id !== action.payload),
+      };
+
+    case "DELETE_EVENT":
+      return {
+        ...state,
+        events: state.events.filter((e) => e.id !== action.payload),
+      };
+
+    case "SET_LOADING":
+      return { ...state, isLoading: action.payload };
+
     default:
       return state;
   }
@@ -129,12 +147,70 @@ function mapInventoryItem(row) {
   };
 }
 
+function computeLocalDashboard() {
+  const sales = salesRepo.getAll();
+  const events = eventsRepo.getAll();
+  const today = new Date().toISOString().split("T")[0];
+
+  const income = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+
+  let totalExpenses = 0;
+  const upcomingEvents = [];
+
+  for (const event of events) {
+    const eventExpenses = (event.expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
+    totalExpenses += eventExpenses;
+
+    if (event.date >= today) {
+      upcomingEvents.push(event);
+    }
+  }
+
+  // Build recent transactions from sales + event expenses
+  const transactions = [];
+  for (const sale of sales.slice(0, 10)) {
+    const itemNames = (sale.items || []).map((i) => `${i.quantity}x ${i.name}`).join(", ");
+    transactions.push({
+      id: sale.id || sale.localId,
+      type: "income",
+      description: itemNames || "Sale",
+      amount: sale.total,
+      date: sale.timestamp,
+      paymentMethod: sale.paymentMethod,
+    });
+  }
+  for (const event of events) {
+    for (const exp of event.expenses || []) {
+      transactions.push({
+        id: exp.id || exp.localId,
+        type: "event_expense",
+        description: exp.category,
+        amount: exp.amount,
+        date: exp.createdAt || event.createdAt,
+        eventName: event.name,
+      });
+    }
+  }
+
+  transactions.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+  return {
+    income,
+    totalExpenses,
+    netProfit: income - totalExpenses,
+    upcomingEvents: upcomingEvents.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5),
+    transactions: transactions.slice(0, 10),
+  };
+}
+
 export function AppStateProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const { registerSyncFunction, triggerSync } = useConnectivity();
 
   const inventoryActions = useMemo(
     () => ({
       loadInventory: async (token) => {
+        dispatch({ type: "SET_LOADING", payload: true });
         // 1. Read from SQLite first (instant UI)
         try {
           const localItems = inventoryRepo.getAll().map(mapInventoryItem);
@@ -148,7 +224,10 @@ export function AppStateProvider({ children }) {
         // 2. If online, fetch from API + upsert into SQLite + re-dispatch
         try {
           const online = await isOnline();
-          if (!online) return;
+          if (!online) {
+            dispatch({ type: "SET_LOADING", payload: false });
+            return;
+          }
 
           const res = await fetch(`${API_BASE_URL}/api/v1/inventory`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -172,6 +251,8 @@ export function AppStateProvider({ children }) {
           }
         } catch (error) {
           console.warn("API inventory fetch failed:", error.message);
+        } finally {
+          dispatch({ type: "SET_LOADING", payload: false });
         }
       },
 
@@ -365,6 +446,37 @@ export function AppStateProvider({ children }) {
         }
         return { success: true };
       },
+
+      deleteInventoryItem: async (token, itemId) => {
+        // Delete from SQLite
+        inventoryRepo.deleteItem(itemId);
+
+        // Enqueue sync
+        syncQueueRepo.enqueue("inventory_item", "DELETE", null, itemId, {});
+
+        // Dispatch to state
+        dispatch({ type: "DELETE_INVENTORY_ITEM", payload: itemId });
+
+        // Try immediate sync
+        try {
+          const online = await isOnline();
+          if (online) {
+            const res = await fetch(`${API_BASE_URL}/api/v1/inventory/${itemId}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const pending = syncQueueRepo.getPending();
+              const entry = pending.find(
+                (e) => e.entity_type === "inventory_item" && e.operation === "DELETE" && e.entity_server_id === itemId
+              );
+              if (entry) syncQueueRepo.markCompleted(entry.id);
+            }
+          }
+        } catch (error) {
+          console.warn("Immediate sync failed, queued for later:", error.message);
+        }
+      },
     }),
     [],
   );
@@ -372,6 +484,7 @@ export function AppStateProvider({ children }) {
   const eventActions = useMemo(
     () => ({
       loadEvents: async (token) => {
+        dispatch({ type: "SET_LOADING", payload: true });
         // 1. Read from SQLite first
         try {
           const localEvents = eventsRepo.getAll();
@@ -400,6 +513,8 @@ export function AppStateProvider({ children }) {
           }
         } catch (error) {
           console.warn("API events fetch failed:", error.message);
+        } finally {
+          dispatch({ type: "SET_LOADING", payload: false });
         }
       },
 
@@ -621,6 +736,37 @@ export function AppStateProvider({ children }) {
           console.warn("Immediate sync failed, queued for later:", error.message);
         }
       },
+
+      deleteEvent: async (token, eventId) => {
+        // Delete from SQLite
+        eventsRepo.deleteEvent(eventId);
+
+        // Enqueue sync
+        syncQueueRepo.enqueue("event", "DELETE", null, eventId, {});
+
+        // Dispatch to state
+        dispatch({ type: "DELETE_EVENT", payload: eventId });
+
+        // Try immediate sync
+        try {
+          const online = await isOnline();
+          if (online) {
+            const res = await fetch(`${API_BASE_URL}/api/v1/events/${eventId}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const pending = syncQueueRepo.getPending();
+              const entry = pending.find(
+                (e) => e.entity_type === "event" && e.operation === "DELETE" && e.entity_server_id === eventId
+              );
+              if (entry) syncQueueRepo.markCompleted(entry.id);
+            }
+          }
+        } catch (error) {
+          console.warn("Immediate sync failed, queued for later:", error.message);
+        }
+      },
     }),
     [],
   );
@@ -628,6 +774,7 @@ export function AppStateProvider({ children }) {
   const salesActions = useMemo(
     () => ({
       loadSales: async (token) => {
+        dispatch({ type: "SET_LOADING", payload: true });
         // 1. Read from SQLite first
         try {
           const localSales = salesRepo.getAll();
@@ -656,6 +803,8 @@ export function AppStateProvider({ children }) {
           }
         } catch (error) {
           console.warn("API sales fetch failed:", error.message);
+        } finally {
+          dispatch({ type: "SET_LOADING", payload: false });
         }
       },
 
@@ -737,6 +886,15 @@ export function AppStateProvider({ children }) {
   const dashboardActions = useMemo(
     () => ({
       loadDashboard: async (token) => {
+        // Always compute local dashboard first so screen is never blank
+        try {
+          const localDashboard = computeLocalDashboard();
+          dispatch({ type: "SET_DASHBOARD", payload: localDashboard });
+        } catch (e) {
+          console.warn("Local dashboard compute failed:", e.message);
+        }
+
+        // If online, fetch from API for authoritative data
         try {
           const online = await isOnline();
           if (!online) return;
@@ -758,12 +916,38 @@ export function AppStateProvider({ children }) {
 
   const syncActions = useMemo(
     () => ({
-      runSync: async (token) => {
-        await syncAll(token, dispatch);
-      },
+      runSync: wrappedRunSync,
     }),
-    [],
+    [wrappedRunSync],
   );
+
+  // Wire auto-sync: when connectivity returns (offline → online), trigger sync
+  const tokenRef = useRef(null);
+
+  // Keep tokenRef updated — we can't access useAuth here directly,
+  // but consumers pass token to runSync; store the last-used token.
+  const wrappedRunSync = useCallback(async (token) => {
+    tokenRef.current = token;
+    await syncAll(token, dispatch);
+  }, []);
+
+  useEffect(() => {
+    registerSyncFunction(() => {
+      if (tokenRef.current) {
+        triggerSync(() => syncAll(tokenRef.current, dispatch));
+      }
+    });
+  }, [registerSyncFunction, triggerSync]);
+
+  // Sync on app foreground
+  useEffect(() => {
+    const subscription = RNAppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && tokenRef.current) {
+        triggerSync(() => syncAll(tokenRef.current, dispatch));
+      }
+    });
+    return () => subscription.remove();
+  }, [triggerSync]);
 
   return (
     <AppContext.Provider

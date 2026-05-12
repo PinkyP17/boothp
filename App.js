@@ -6,6 +6,7 @@ import { initDatabase } from "./src/services/database";
 import { AppStateProvider } from "./src/context/AppContext";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ConnectivityProvider } from "./src/context/ConnectivityContext";
+import { ToastProvider } from "./src/components/Toast";
 import TabNavigator from "./src/navigation/TabNavigator";
 import AuthStack from "./src/navigation/AuthStack";
 import { COLORS } from "./src/constants/theme";
@@ -54,7 +55,9 @@ export default function App() {
     <AuthProvider>
       <ConnectivityProvider>
         <AppStateProvider>
-          <RootNavigator />
+          <ToastProvider>
+            <RootNavigator />
+          </ToastProvider>
         </AppStateProvider>
       </ConnectivityProvider>
     </AuthProvider>
