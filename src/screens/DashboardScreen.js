@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.cardRadius,
     padding: 12,
     marginBottom: 8,
+    minHeight: 64,
   },
   txIcon: {
     width: 36,

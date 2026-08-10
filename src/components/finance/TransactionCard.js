@@ -34,10 +34,23 @@ export default function TransactionCard({ transaction }) {
         <Text style={[styles.description, { color: C.textPrimary }]} numberOfLines={1}>
           {transaction.description}
         </Text>
-        <Text style={[styles.meta, { color: C.textSecondary }]}>
-          {transaction.eventName ? `${transaction.eventName} · ` : ""}
-          {formatDate(transaction.date)}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text style={[styles.meta, { color: C.textSecondary }]}>
+            {transaction.eventName ? `${transaction.eventName} · ` : ""}
+            {formatDate(transaction.date)}
+          </Text>
+          {isIncome && transaction.paymentMethod ? (
+            <View style={[styles.paymentPill, {
+              backgroundColor: transaction.paymentMethod === "cash" ? "#FF950015" : C.primary + "15",
+            }]}>
+              <Text style={[styles.paymentText, {
+                color: transaction.paymentMethod === "cash" ? "#FF9500" : C.primary,
+              }]}>
+                {transaction.paymentMethod === "cash" ? "Cash" : "QR"}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
       <Text
         style={[
@@ -76,8 +89,22 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: 2,
   },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   meta: {
     fontSize: SIZES.fontCaption,
+  },
+  paymentPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  paymentText: {
+    fontSize: SIZES.fontCaption - 1,
+    fontWeight: "600",
   },
   amount: {
     fontSize: SIZES.fontBody,

@@ -123,7 +123,7 @@ export default function FinanceChart({
   return (
     <View>
       {/* Income vs Expenses Comparison */}
-      {filter === "All" && hasTotals && (
+      {(filter === "Income" || filter === "Expenses") && hasTotals && (
         <View
           style={[styles.chartCard, CARD_SHADOW, { backgroundColor: C.card }]}
         >
@@ -343,7 +343,7 @@ export default function FinanceChart({
       )}
 
       {/* Event Performance */}
-      {filter === "All" && eventsWithData.length > 0 && (
+      {filter === "Income" && eventsWithData.length > 0 && (
         <View
           style={[styles.chartCard, CARD_SHADOW, { backgroundColor: C.card }]}
         >
