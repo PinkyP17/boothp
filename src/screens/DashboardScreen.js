@@ -6,10 +6,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { SIZES, CARD_SHADOW } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 import { useAppState } from "../context/AppContext";
-import { useAuth } from "../context/AuthContext";
 import SummaryCard from "../components/SummaryCard";
 import EventCard from "../components/EventCard";
-import ConnectivityBanner from "../components/ConnectivityBanner";
 
 function formatTransactionDate(dateString) {
   if (!dateString) return "";
@@ -28,7 +26,6 @@ function formatTransactionDate(dateString) {
 export default function DashboardScreen({ navigation }) {
   const { colors: C } = useTheme();
   const { state, loadDashboard } = useAppState();
-  const { token } = useAuth();
   const dashboard = state.dashboard;
   const isLoading = state.isLoading && !dashboard;
   const [refreshing, setRefreshing] = useState(false);
@@ -41,10 +38,8 @@ export default function DashboardScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      if (token) {
-        loadDashboard(token);
-      }
-    }, [token]),
+      loadDashboard();
+    }, []),
   );
 
   const income = dashboard?.income ?? 0;
@@ -55,7 +50,6 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
-      <ConnectivityBanner />
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -64,7 +58,7 @@ export default function DashboardScreen({ navigation }) {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await loadDashboard(token);
+              await loadDashboard();
               setRefreshing(false);
             }}
             colors={[C.primary]}

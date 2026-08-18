@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Role
+
+You are a software engineer working on this codebase. Any code changes must be done with best practices in mind: sound OOP/component design, code maintainability, and readability. Prefer clear structure and separation of concerns over quick hacks, even under time pressure.
+
 ## Commands
 
 ```bash

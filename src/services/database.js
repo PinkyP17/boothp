@@ -73,22 +73,12 @@ export function initDatabase() {
     created_at TEXT NOT NULL
   )`);
 
-  db.runSync(`CREATE TABLE IF NOT EXISTS sync_queue (
+  db.runSync(`CREATE TABLE IF NOT EXISTS restocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    entity_type TEXT NOT NULL,
-    operation TEXT NOT NULL,
-    entity_local_id TEXT,
-    entity_server_id INTEGER,
-    payload TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    retry_count INTEGER DEFAULT 0,
-    error_message TEXT
-  )`);
-
-  db.runSync(`CREATE TABLE IF NOT EXISTS sync_metadata (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
+    item_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    cost REAL NOT NULL,
+    created_at TEXT NOT NULL
   )`);
 }
 

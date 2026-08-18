@@ -17,12 +17,10 @@ import { useTheme } from "../context/ThemeContext";
 import { getEventStatus } from "../utils/eventStatus";
 import { formatCurrency } from "../utils/formatCurrency";
 import { useAppState } from "../context/AppContext";
-import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
 import EventModal from "../components/event/EventModal";
 import EventExpenseModal from "../components/event/EventExpenseModal";
-import ConnectivityBanner from "../components/ConnectivityBanner";
 
 function formatDate(dateString) {
   if (!dateString) return "";
@@ -80,7 +78,6 @@ export default function EventDetailScreen({ navigation, route }) {
   const { eventId } = route.params;
   const { state, updateEvent, addEventExpense, deleteEventExpense, loadSales, loadEvents } =
     useAppState();
-  const { token } = useAuth();
   const { colors: C } = useTheme();
 
   const STATUS_COLORS = {
@@ -101,9 +98,7 @@ export default function EventDetailScreen({ navigation, route }) {
   // Load sales and sync notes on focus, close modals on blur
   useFocusEffect(
     useCallback(() => {
-      if (token) {
-        loadSales(token);
-      }
+      loadSales();
       if (event) {
         setNotes(event.notes || "");
         setNotesDirty(false);
@@ -112,7 +107,7 @@ export default function EventDetailScreen({ navigation, route }) {
         setEditModalVisible(false);
         setExpenseModalVisible(false);
       };
-    }, [token, event?.id, event?.notes]),
+    }, [event?.id, event?.notes]),
   );
 
   if (!event) {
@@ -147,14 +142,14 @@ export default function EventDetailScreen({ navigation, route }) {
   const salesByDate = groupSalesByDate(eventSales);
 
   const handleEditSave = async (eventData) => {
-    const result = await updateEvent(token, eventData.id, eventData);
+    const result = await updateEvent(eventData.id, eventData);
     if (result && !result.success) {
       showToast(result.message || "Failed to update event", "error");
     }
   };
 
   const handleAddExpense = async (expense) => {
-    const result = await addEventExpense(token, event.id, expense);
+    const result = await addEventExpense(event.id, expense);
     if (result && !result.success) {
       showToast(result.message || "Failed to add expense", "error");
     }
@@ -166,13 +161,13 @@ export default function EventDetailScreen({ navigation, route }) {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => deleteEventExpense(token, event.id, expenseId),
+        onPress: () => deleteEventExpense(event.id, expenseId),
       },
     ]);
   };
 
   const handleSaveNotes = async () => {
-    await updateEvent(token, event.id, {
+    await updateEvent(event.id, {
       id: event.id,
       name: event.name,
       date: event.date,
@@ -187,7 +182,6 @@ export default function EventDetailScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
-      <ConnectivityBanner />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -212,7 +206,7 @@ export default function EventDetailScreen({ navigation, route }) {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await Promise.all([loadEvents(token), loadSales(token)]);
+              await Promise.all([loadEvents(), loadSales()]);
               setRefreshing(false);
             }}
             colors={[C.primary]}

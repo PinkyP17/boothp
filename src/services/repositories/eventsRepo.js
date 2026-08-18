@@ -117,9 +117,3 @@ export function deleteByLocalId(localId) {
   db.runSync("DELETE FROM event_expenses WHERE event_local_id = ?", [localId]);
   db.runSync("DELETE FROM events WHERE local_id = ?", [localId]);
 }
-
-export function updateServerId(localId, serverId) {
-  const db = getDb();
-  db.runSync("UPDATE events SET id = ? WHERE local_id = ?", [serverId, localId]);
-  db.runSync("UPDATE event_expenses SET event_id = ? WHERE event_local_id = ?", [serverId, localId]);
-}

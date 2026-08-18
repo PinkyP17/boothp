@@ -1,17 +1,36 @@
-import { useState } from "react";
-import { StyleSheet, Text, View, Modal, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Modal,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
 
-export default function PaymentModal({ visible, total, onClose, onConfirm }) {
+export default function PaymentModal({
+  visible,
+  total,
+  submitting,
+  onClose,
+  onConfirm,
+}) {
   const { colors: C } = useTheme();
   const [method, setMethod] = useState(null);
 
+  // Reset the selected method each time the modal is (re)opened, not on
+  // confirm — resetting on confirm would clear the selection if the sale
+  // fails and the modal stays open.
+  useEffect(() => {
+    if (visible) setMethod(null);
+  }, [visible]);
+
   const handleConfirm = () => {
-    if (!method) return;
+    if (!method || submitting) return;
     onConfirm(method);
-    setMethod(null);
   };
 
   return (
@@ -92,6 +111,7 @@ export default function PaymentModal({ visible, total, onClose, onConfirm }) {
             <TouchableOpacity
               style={[styles.cancelButton, { backgroundColor: C.background }]}
               onPress={onClose}
+              disabled={submitting}
             >
               <Text style={[styles.cancelText, { color: C.textSecondary }]}>
                 Cancel
@@ -101,12 +121,16 @@ export default function PaymentModal({ visible, total, onClose, onConfirm }) {
               style={[
                 styles.confirmButton,
                 { backgroundColor: C.income },
-                !method && styles.confirmDisabled,
+                (!method || submitting) && styles.confirmDisabled,
               ]}
               onPress={handleConfirm}
-              disabled={!method}
+              disabled={!method || submitting}
             >
-              <Text style={styles.confirmText}>Confirm Sale</Text>
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.confirmText}>Confirm Sale</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

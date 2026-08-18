@@ -1,6 +1,12 @@
 # POS Fix Plan
 
-Follow-up to the POS code review. Issues found, ordered by severity, with the fix approach for each. Not yet implemented — this is the plan to work from once prioritized.
+Follow-up to the POS code review. Issues found, ordered by severity, with the fix approach for each.
+
+**Status (2026-08-18): #1–#5 implemented.** #6 (low-priority polish) not started.
+
+Note on #1: investigation during implementation found the backend `SaleRequest`/`DiscountDto` DTOs actually expect the nested `discount: {type, value, amount}` shape — i.e. `POSScreen.js` was already sending the correct wire format. The bug was entirely in `AppContext.createSale` reading nonexistent flat fields; fixed there instead of changing POSScreen's payload shape.
+
+Note on #2: implemented as "always-queue" (option b from the decision below) — `createSale` no longer does a bespoke immediate `fetch`; it writes locally, enqueues, and fires `triggerSync(() => syncAll(token, dispatch))` to reuse the existing queue-based push path immediately when online, without blocking the UI on the network call.
 
 ## 1. Sale payload shape mismatch (critical)
 

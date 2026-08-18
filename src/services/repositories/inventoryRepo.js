@@ -41,22 +41,6 @@ export function upsertBatch(items) {
   }
 }
 
-export function getByLocalId(localId) {
-  const db = getDb();
-  return db.getFirstSync(
-    "SELECT * FROM inventory_items WHERE local_id = ?",
-    [localId]
-  );
-}
-
-export function updateServerId(localId, serverId) {
-  const db = getDb();
-  db.runSync(
-    "UPDATE inventory_items SET id = ? WHERE local_id = ?",
-    [serverId, localId]
-  );
-}
-
 export function updateStock(itemId, newStock) {
   const db = getDb();
   db.runSync(

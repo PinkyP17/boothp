@@ -60,15 +60,3 @@ export function insert(sale) {
   }
 }
 
-export function upsertFromServer(sale) {
-  const db = getDb();
-  // Delete existing sale_items for this sale before re-inserting
-  db.runSync("DELETE FROM sale_items WHERE sale_id = ?", [sale.id]);
-  insert(sale);
-}
-
-export function updateServerId(localId, serverId) {
-  const db = getDb();
-  db.runSync("UPDATE sales SET id = ? WHERE local_id = ?", [serverId, localId]);
-  db.runSync("UPDATE sale_items SET sale_id = ? WHERE sale_local_id = ?", [serverId, localId]);
-}

@@ -14,27 +14,22 @@ import { SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
 import { useTheme } from "../context/ThemeContext";
-import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
 import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
 import InventoryItemCard from "../components/inventory/InventoryItemCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
-import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function InventoryScreen() {
   const { state, loadInventory, addInventoryItem, updateInventoryItem, restockItem } = useAppState();
-  const { token } = useAuth();
   const { colors: C } = useTheme();
   const { showToast } = useToast();
   const items = state.inventory;
 
   useEffect(() => {
-    if (token) {
-      loadInventory(token);
-    }
-  }, [token]);
+    loadInventory();
+  }, []);
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,11 +74,11 @@ export default function InventoryScreen() {
   const handleSave = async (data) => {
     let result;
     if (modalMode === "add") {
-      result = await addInventoryItem(token, data);
+      result = await addInventoryItem(data);
     } else if (modalMode === "edit") {
-      result = await updateInventoryItem(token, data.id, data);
+      result = await updateInventoryItem(data.id, data);
     } else if (modalMode === "restock") {
-      result = await restockItem(token, data.itemId, {
+      result = await restockItem(data.itemId, {
         quantity: data.quantity,
         cost: data.cost,
       });
@@ -95,7 +90,6 @@ export default function InventoryScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
-      <ConnectivityBanner />
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -104,7 +98,7 @@ export default function InventoryScreen() {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await loadInventory(token);
+              await loadInventory();
               setRefreshing(false);
             }}
             colors={[C.primary]}

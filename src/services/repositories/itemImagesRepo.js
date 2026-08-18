@@ -60,11 +60,3 @@ export function replaceImages(itemId, itemLocalId, imageUris) {
     );
   });
 }
-
-export function updateItemId(localId, serverId) {
-  const db = getDb();
-  db.runSync(
-    "UPDATE item_images SET item_id = ? WHERE item_local_id = ?",
-    [serverId, localId]
-  );
-}

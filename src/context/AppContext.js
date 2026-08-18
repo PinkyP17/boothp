@@ -1,15 +1,10 @@
-import { createContext, useContext, useReducer, useMemo, useEffect, useRef, useCallback } from "react";
-import { AppState as RNAppState } from "react-native";
+import { createContext, useContext, useReducer, useMemo } from "react";
 
-import { API_BASE_URL } from "../config/api";
-import { isOnline } from "../services/connectivityService";
 import * as inventoryRepo from "../services/repositories/inventoryRepo";
 import * as salesRepo from "../services/repositories/salesRepo";
 import * as eventsRepo from "../services/repositories/eventsRepo";
-import * as syncQueueRepo from "../services/repositories/syncQueueRepo";
 import * as itemImagesRepo from "../services/repositories/itemImagesRepo";
-import { syncAll } from "../services/syncEngine";
-import { useConnectivity } from "./ConnectivityContext";
+import * as restockRepo from "../services/repositories/restockRepo";
 
 const AppContext = createContext();
 
@@ -162,15 +157,15 @@ function mapInventoryItem(row) {
   };
 }
 
-function computeLocalDashboard() {
+function computeDashboard() {
   const sales = salesRepo.getAll();
   const events = eventsRepo.getAll();
+  const restocks = restockRepo.getAll();
   const today = new Date().toISOString().split("T")[0];
 
   const income = sales.reduce((sum, s) => sum + (s.total || 0), 0);
 
   let totalEventExpenses = 0;
-  let restockExpenses = 0;
   const upcomingEvents = [];
   const allEventsWithTotals = [];
 
@@ -186,21 +181,7 @@ function computeLocalDashboard() {
     }
   }
 
-  // Estimate restock expenses from sync queue or inventory cost
-  // (Restock costs aren't stored separately in SQLite, so we approximate from the queue)
-  try {
-    const db = require("../services/database").getDb();
-    const restockEntries = db.getAllSync(
-      "SELECT payload FROM sync_queue WHERE entity_type = 'restock' AND status = 'completed'"
-    );
-    for (const entry of restockEntries) {
-      try {
-        const payload = JSON.parse(entry.payload);
-        restockExpenses += payload.cost || 0;
-      } catch (_) {}
-    }
-  } catch (_) {}
-
+  const restockExpenses = restocks.reduce((sum, r) => sum + r.cost, 0);
   const totalExpenses = totalEventExpenses + restockExpenses;
 
   // Build recent transactions from sales + event expenses
@@ -295,291 +276,117 @@ function computeLocalDashboard() {
 
 export function AppStateProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const { registerSyncFunction, triggerSync } = useConnectivity();
 
   const inventoryActions = useMemo(
     () => ({
-      loadInventory: async (token) => {
+      loadInventory: () => {
         dispatch({ type: "SET_LOADING", payload: true });
-        // 1. Read from SQLite first (instant UI)
         try {
-          const localItems = inventoryRepo.getAll().map(mapInventoryItem);
-          if (localItems.length > 0) {
-            dispatch({ type: "SET_INVENTORY", payload: localItems });
-          }
+          const items = inventoryRepo.getAll().map(mapInventoryItem);
+          dispatch({ type: "SET_INVENTORY", payload: items });
         } catch (e) {
-          console.warn("SQLite inventory read failed:", e.message);
-        }
-
-        // 2. If online, fetch from API + upsert into SQLite + re-dispatch
-        try {
-          const online = await isOnline();
-          if (!online) {
-            dispatch({ type: "SET_LOADING", payload: false });
-            return;
-          }
-
-          const res = await fetch(`${API_BASE_URL}/api/v1/inventory`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = await res.json();
-          if (res.ok) {
-            for (const item of data) {
-              inventoryRepo.upsert({
-                id: item.id,
-                name: item.name,
-                category: item.category,
-                production_cost: item.productionCost,
-                selling_price: item.sellingPrice,
-                stock: item.stock,
-                created_at: item.createdAt,
-                updated_at: item.updatedAt,
-              });
-            }
-            const hydrated = inventoryRepo.getAll().map(mapInventoryItem);
-            dispatch({ type: "SET_INVENTORY", payload: hydrated });
-          }
-        } catch (error) {
-          console.warn("API inventory fetch failed:", error.message);
+          console.warn("Loading inventory failed:", e.message);
         } finally {
           dispatch({ type: "SET_LOADING", payload: false });
         }
       },
 
-      addInventoryItem: async (token, itemData) => {
-        const { imageUri, images: itemImages, ...apiData } = itemData;
+      addInventoryItem: (itemData) => {
+        const { imageUri, images: itemImages, ...data } = itemData;
         const imageList = itemImages && itemImages.length > 0 ? itemImages : imageUri ? [imageUri] : [];
         const localId = generateLocalId();
         const now = new Date().toISOString();
 
-        // Write to SQLite
         const localItem = {
           local_id: localId,
-          name: apiData.name,
-          category: apiData.category,
-          production_cost: apiData.productionCost,
-          selling_price: apiData.sellingPrice,
-          stock: apiData.stock,
+          name: data.name,
+          category: data.category,
+          production_cost: data.productionCost,
+          selling_price: data.sellingPrice,
+          stock: data.stock,
           image_uri: imageList[0] || null,
           created_at: now,
           updated_at: now,
         };
-        inventoryRepo.upsert(localItem);
 
-        // Save images to junction table
+        try {
+          inventoryRepo.upsert(localItem);
+        } catch (error) {
+          console.warn("Failed to save inventory item:", error.message);
+          return { success: false, message: "Failed to save item" };
+        }
+
         if (imageList.length > 0) {
           itemImagesRepo.replaceImages(null, localId, imageList);
         }
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("inventory_item", "CREATE", localId, null, apiData);
-
-        // Dispatch to state
         const stateItem = {
           ...mapInventoryItem({ ...localItem, id: null }),
           localId,
         };
         dispatch({ type: "ADD_TO_INVENTORY", payload: stateItem });
-
-        // Try immediate sync if online
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/inventory`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(apiData),
-            });
-            const data = await res.json();
-            if (res.ok) {
-              inventoryRepo.updateServerId(localId, data.id);
-              inventoryRepo.upsert({
-                id: data.id,
-                local_id: localId,
-                name: data.name,
-                category: data.category,
-                production_cost: data.productionCost,
-                selling_price: data.sellingPrice,
-                stock: data.stock,
-                image_uri: imageList[0] || null,
-                created_at: data.createdAt,
-                updated_at: data.updatedAt,
-              });
-              // Update junction table with server ID
-              itemImagesRepo.updateItemId(localId, data.id);
-              // Clear the sync queue entry
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find((e) => e.entity_local_id === localId);
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              dispatch({
-                type: "UPDATE_INVENTORY_ITEM",
-                payload: { ...data, imageUri: imageList[0] || null, images: imageList, localId },
-              });
-              return { success: true };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true };
       },
 
-      updateInventoryItem: async (token, itemId, itemData) => {
-        const { imageUri, images: itemImages, ...apiData } = itemData;
+      updateInventoryItem: (itemId, itemData) => {
+        const { imageUri, images: itemImages, ...data } = itemData;
         const imageList = itemImages && itemImages.length > 0 ? itemImages : imageUri ? [imageUri] : [];
 
-        // Write to SQLite
-        inventoryRepo.upsert({
-          id: itemId,
-          name: apiData.name,
-          category: apiData.category,
-          production_cost: apiData.productionCost,
-          selling_price: apiData.sellingPrice,
-          stock: apiData.stock,
-          image_uri: imageList[0] || null,
-          updated_at: new Date().toISOString(),
-          created_at: apiData.createdAt || new Date().toISOString(),
-        });
+        try {
+          inventoryRepo.upsert({
+            id: itemId,
+            name: data.name,
+            category: data.category,
+            production_cost: data.productionCost,
+            selling_price: data.sellingPrice,
+            stock: data.stock,
+            image_uri: imageList[0] || null,
+            updated_at: new Date().toISOString(),
+            created_at: data.createdAt || new Date().toISOString(),
+          });
+        } catch (error) {
+          console.warn("Failed to update inventory item:", error.message);
+          return { success: false, message: "Failed to update item" };
+        }
 
-        // Update images in junction table
         itemImagesRepo.replaceImages(itemId, null, imageList);
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("inventory_item", "UPDATE", null, itemId, apiData);
-
-        // Dispatch to state
         dispatch({
           type: "UPDATE_INVENTORY_ITEM",
-          payload: { ...apiData, id: itemId, imageUri: imageList[0] || null, images: imageList },
+          payload: { ...data, id: itemId, imageUri: imageList[0] || null, images: imageList },
         });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/inventory/${itemId}`, {
-              method: "PUT",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(apiData),
-            });
-            const data = await res.json();
-            if (res.ok) {
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find(
-                (e) => e.entity_type === "inventory_item" && e.operation === "UPDATE" && e.entity_server_id === itemId
-              );
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              dispatch({
-                type: "UPDATE_INVENTORY_ITEM",
-                payload: { ...data, imageUri: imageList[0] || null, images: imageList },
-              });
-              return { success: true };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true };
       },
 
-      restockItem: async (token, itemId, restockData) => {
-        // Update stock locally in SQLite
+      restockItem: (itemId, restockData) => {
         const existing = inventoryRepo.getAll().find((i) => i.id === itemId);
-        if (existing) {
+        if (!existing) {
+          return { success: false, message: "Item not found" };
+        }
+
+        try {
           inventoryRepo.upsert({
             ...existing,
             stock: existing.stock + restockData.quantity,
             updated_at: new Date().toISOString(),
           });
+          restockRepo.insert(itemId, restockData.quantity, restockData.cost || 0);
+        } catch (error) {
+          console.warn("Failed to restock item:", error.message);
+          return { success: false, message: "Failed to restock item" };
         }
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("restock", "CREATE", null, itemId, {
-          ...restockData,
-          _itemServerId: itemId,
-        });
-
-        // Dispatch to state
         dispatch({
           type: "RESTOCK_ITEM",
           payload: { itemId, quantity: restockData.quantity },
         });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(
-              `${API_BASE_URL}/api/v1/inventory/${itemId}/restock`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(restockData),
-              },
-            );
-            const data = await res.json();
-            if (res.ok) {
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find(
-                (e) => e.entity_type === "restock" && e.entity_server_id === itemId
-              );
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              dispatch({ type: "UPDATE_INVENTORY_ITEM", payload: data });
-              return { success: true };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true };
       },
 
-      deleteInventoryItem: async (token, itemId) => {
-        // Delete images from junction table
+      deleteInventoryItem: (itemId) => {
         itemImagesRepo.removeAllForItem(itemId);
-        // Delete from SQLite
         inventoryRepo.deleteItem(itemId);
-
-        // Enqueue sync
-        syncQueueRepo.enqueue("inventory_item", "DELETE", null, itemId, {});
-
-        // Dispatch to state
         dispatch({ type: "DELETE_INVENTORY_ITEM", payload: itemId });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/inventory/${itemId}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find(
-                (e) => e.entity_type === "inventory_item" && e.operation === "DELETE" && e.entity_server_id === itemId
-              );
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-            }
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
       },
     }),
     [],
@@ -587,46 +394,22 @@ export function AppStateProvider({ children }) {
 
   const eventActions = useMemo(
     () => ({
-      loadEvents: async (token) => {
+      loadEvents: () => {
         dispatch({ type: "SET_LOADING", payload: true });
-        // 1. Read from SQLite first
         try {
-          const localEvents = eventsRepo.getAll();
-          if (localEvents.length > 0) {
-            dispatch({ type: "SET_EVENTS", payload: localEvents });
-          }
+          const events = eventsRepo.getAll();
+          dispatch({ type: "SET_EVENTS", payload: events });
         } catch (e) {
-          console.warn("SQLite events read failed:", e.message);
-        }
-
-        // 2. If online, fetch from API
-        try {
-          const online = await isOnline();
-          if (!online) return;
-
-          const res = await fetch(`${API_BASE_URL}/api/v1/events`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = await res.json();
-          if (res.ok) {
-            for (const event of data) {
-              eventsRepo.upsertWithExpenses(event);
-            }
-            const hydrated = eventsRepo.getAll();
-            dispatch({ type: "SET_EVENTS", payload: hydrated });
-          }
-        } catch (error) {
-          console.warn("API events fetch failed:", error.message);
+          console.warn("Loading events failed:", e.message);
         } finally {
           dispatch({ type: "SET_LOADING", payload: false });
         }
       },
 
-      addEvent: async (token, eventData) => {
+      addEvent: (eventData) => {
         const localId = generateLocalId();
         const now = new Date().toISOString();
 
-        // Write to SQLite
         const localEvent = {
           local_id: localId,
           name: eventData.name,
@@ -638,12 +421,14 @@ export function AppStateProvider({ children }) {
           notes: eventData.notes || null,
           created_at: now,
         };
-        eventsRepo.upsert(localEvent);
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("event", "CREATE", localId, null, eventData);
+        try {
+          eventsRepo.upsert(localEvent);
+        } catch (error) {
+          console.warn("Failed to save event:", error.message);
+          return { success: false, message: "Failed to save event" };
+        }
 
-        // Dispatch to state
         const stateEvent = {
           localId,
           name: eventData.name,
@@ -657,219 +442,68 @@ export function AppStateProvider({ children }) {
           expenses: [],
         };
         dispatch({ type: "ADD_EVENT", payload: stateEvent });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/events`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(eventData),
-            });
-            const data = await res.json();
-            if (res.ok) {
-              eventsRepo.updateServerId(localId, data.id);
-              eventsRepo.upsertWithExpenses(data);
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find((e) => e.entity_local_id === localId);
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              dispatch({ type: "UPDATE_EVENT", payload: { ...data, localId } });
-              return { success: true };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true };
       },
 
-      updateEvent: async (token, eventId, eventData) => {
-        // Write to SQLite
-        eventsRepo.upsert({
-          id: eventId,
-          name: eventData.name,
-          date: eventData.date,
-          end_date: eventData.endDate,
-          location: eventData.location,
-          status: eventData.status,
-          currency: eventData.currency,
-          notes: eventData.notes,
-          created_at: eventData.createdAt || new Date().toISOString(),
-        });
+      updateEvent: (eventId, eventData) => {
+        try {
+          eventsRepo.upsert({
+            id: eventId,
+            name: eventData.name,
+            date: eventData.date,
+            end_date: eventData.endDate,
+            location: eventData.location,
+            status: eventData.status,
+            currency: eventData.currency,
+            notes: eventData.notes,
+            created_at: eventData.createdAt || new Date().toISOString(),
+          });
+        } catch (error) {
+          console.warn("Failed to update event:", error.message);
+          return { success: false, message: "Failed to update event" };
+        }
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("event", "UPDATE", null, eventId, eventData);
-
-        // Dispatch to state
         dispatch({
           type: "UPDATE_EVENT",
           payload: { ...eventData, id: eventId, expenses: eventData.expenses || [] },
         });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/events/${eventId}`, {
-              method: "PUT",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(eventData),
-            });
-            const data = await res.json();
-            if (res.ok) {
-              eventsRepo.upsertWithExpenses(data);
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find(
-                (e) => e.entity_type === "event" && e.operation === "UPDATE" && e.entity_server_id === eventId
-              );
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              dispatch({ type: "UPDATE_EVENT", payload: data });
-              return { success: true };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true };
       },
 
-      addEventExpense: async (token, eventId, expenseData) => {
+      addEventExpense: (eventId, expenseData) => {
         const localId = generateLocalId();
         const now = new Date().toISOString();
 
-        // Write to SQLite
-        eventsRepo.insertExpense(
-          { local_id: localId, category: expenseData.category, amount: expenseData.amount, created_at: now },
-          eventId,
-          null,
-        );
+        try {
+          eventsRepo.insertExpense(
+            { local_id: localId, category: expenseData.category, amount: expenseData.amount, created_at: now },
+            eventId,
+            null,
+          );
+        } catch (error) {
+          console.warn("Failed to add expense:", error.message);
+          return { success: false, message: "Failed to add expense" };
+        }
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("event_expense", "CREATE", localId, null, {
-          ...expenseData,
-          _eventServerId: eventId,
-        });
-
-        // Dispatch — reload event from SQLite to get updated expenses
         const allEvents = eventsRepo.getAll();
         const updated = allEvents.find((e) => e.id === eventId);
         if (updated) {
           dispatch({ type: "UPDATE_EVENT", payload: updated });
         }
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(
-              `${API_BASE_URL}/api/v1/events/${eventId}/expenses`,
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(expenseData),
-              },
-            );
-            const data = await res.json();
-            if (res.ok) {
-              eventsRepo.upsertWithExpenses(data);
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find((e) => e.entity_local_id === localId);
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              dispatch({ type: "UPDATE_EVENT", payload: data });
-              return { success: true };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true };
       },
 
-      deleteEventExpense: async (token, eventId, expenseId) => {
-        // Delete from SQLite
+      deleteEventExpense: (eventId, expenseId) => {
         eventsRepo.deleteExpense(expenseId);
-
-        // Enqueue sync
-        syncQueueRepo.enqueue("event_expense", "DELETE", null, null, {
-          _eventServerId: eventId,
-          _expenseServerId: expenseId,
-        });
-
-        // Dispatch
         dispatch({
           type: "DELETE_EVENT_EXPENSE",
           payload: { eventId, expenseId },
         });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(
-              `${API_BASE_URL}/api/v1/events/${eventId}/expenses/${expenseId}`,
-              {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-              },
-            );
-            if (res.ok) {
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find(
-                (e) => e.entity_type === "event_expense" && e.operation === "DELETE"
-              );
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-            }
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
       },
 
-      deleteEvent: async (token, eventId) => {
-        // Delete from SQLite
+      deleteEvent: (eventId) => {
         eventsRepo.deleteEvent(eventId);
-
-        // Enqueue sync
-        syncQueueRepo.enqueue("event", "DELETE", null, eventId, {});
-
-        // Dispatch to state
         dispatch({ type: "DELETE_EVENT", payload: eventId });
-
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/events/${eventId}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find(
-                (e) => e.entity_type === "event" && e.operation === "DELETE" && e.entity_server_id === eventId
-              );
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-            }
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
       },
     }),
     [],
@@ -877,110 +511,66 @@ export function AppStateProvider({ children }) {
 
   const salesActions = useMemo(
     () => ({
-      loadSales: async (token) => {
+      loadSales: () => {
         dispatch({ type: "SET_LOADING", payload: true });
-        // 1. Read from SQLite first
         try {
-          const localSales = salesRepo.getAll();
-          if (localSales.length > 0) {
-            dispatch({ type: "SET_SALES", payload: localSales });
-          }
+          const sales = salesRepo.getAll();
+          dispatch({ type: "SET_SALES", payload: sales });
         } catch (e) {
-          console.warn("SQLite sales read failed:", e.message);
-        }
-
-        // 2. If online, fetch from API
-        try {
-          const online = await isOnline();
-          if (!online) return;
-
-          const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = await res.json();
-          if (res.ok) {
-            for (const sale of data) {
-              salesRepo.upsertFromServer(sale);
-            }
-            const hydrated = salesRepo.getAll();
-            dispatch({ type: "SET_SALES", payload: hydrated });
-          }
-        } catch (error) {
-          console.warn("API sales fetch failed:", error.message);
+          console.warn("Loading sales failed:", e.message);
         } finally {
           dispatch({ type: "SET_LOADING", payload: false });
         }
       },
 
-      createSale: async (token, saleData) => {
+      createSale: (saleData) => {
         const localId = generateLocalId();
         const now = new Date().toISOString();
+        const items = saleData.items || [];
+        const subtotal = items.reduce(
+          (sum, item) => sum + item.unitPrice * item.quantity,
+          0,
+        );
 
-        // Write to SQLite
         const localSale = {
           local_id: localId,
-          subtotal: saleData.subtotal,
-          discount_type: saleData.discountType || null,
-          discount_value: saleData.discountValue || null,
-          discount_amount: saleData.discountAmount || null,
+          subtotal,
+          discount_type: saleData.discount?.type || null,
+          discount_value: saleData.discount?.value || null,
+          discount_amount: saleData.discount?.amount || null,
           total: saleData.total,
           payment_method: saleData.paymentMethod,
           timestamp: saleData.timestamp || now,
-          items: saleData.items || [],
+          items,
         };
-        salesRepo.insert(localSale);
 
-        // Decrement stock locally
-        for (const item of (saleData.items || [])) {
+        try {
+          salesRepo.insert(localSale);
+        } catch (error) {
+          console.warn("Failed to record sale:", error.message);
+          return { success: false, message: "Failed to record sale" };
+        }
+
+        for (const item of items) {
           const invItem = inventoryRepo.getAll().find((i) => i.id === item.itemId);
           if (invItem) {
             inventoryRepo.updateStock(item.itemId, Math.max(0, invItem.stock - item.quantity));
           }
         }
 
-        // Enqueue sync
-        syncQueueRepo.enqueue("sale", "CREATE", localId, null, saleData);
-
-        // Dispatch to state
         const stateSale = {
           localId,
-          subtotal: saleData.subtotal,
-          discountType: saleData.discountType,
-          discountValue: saleData.discountValue,
-          discountAmount: saleData.discountAmount,
+          subtotal,
+          discountType: saleData.discount?.type,
+          discountValue: saleData.discount?.value,
+          discountAmount: saleData.discount?.amount,
           total: saleData.total,
           paymentMethod: saleData.paymentMethod,
           timestamp: saleData.timestamp || now,
-          items: saleData.items || [],
+          items,
         };
         dispatch({ type: "ADD_SALE", payload: stateSale });
 
-        // Try immediate sync
-        try {
-          const online = await isOnline();
-          if (online) {
-            const res = await fetch(`${API_BASE_URL}/api/v1/sales`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(saleData),
-            });
-            const data = await res.json();
-            if (res.ok) {
-              salesRepo.updateServerId(localId, data.id);
-              const pending = syncQueueRepo.getPending();
-              const entry = pending.find((e) => e.entity_local_id === localId);
-              if (entry) syncQueueRepo.markCompleted(entry.id);
-
-              return { success: true, data };
-            }
-            return { success: false, message: data.message, errors: data.errors };
-          }
-        } catch (error) {
-          console.warn("Immediate sync failed, queued for later:", error.message);
-        }
         return { success: true, data: stateSale };
       },
     }),
@@ -989,83 +579,17 @@ export function AppStateProvider({ children }) {
 
   const dashboardActions = useMemo(
     () => ({
-      loadDashboard: async (token) => {
-        // Always compute local dashboard first so screen is never blank
+      loadDashboard: () => {
         try {
-          const localDashboard = computeLocalDashboard();
-          dispatch({ type: "SET_DASHBOARD", payload: localDashboard });
+          const dashboard = computeDashboard();
+          dispatch({ type: "SET_DASHBOARD", payload: dashboard });
         } catch (e) {
-          console.warn("Local dashboard compute failed:", e.message);
-        }
-
-        // If online, fetch from API for authoritative data
-        // Merge with local chart fields (revenueByDay, expenseByCategory, allEvents)
-        // since the API may not return those
-        try {
-          const online = await isOnline();
-          if (!online) return;
-
-          const res = await fetch(`${API_BASE_URL}/api/v1/dashboard`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = await res.json();
-          if (res.ok) {
-            const local = computeLocalDashboard();
-            dispatch({
-              type: "SET_DASHBOARD",
-              payload: {
-                ...data,
-                revenueByDay: data.revenueByDay || local.revenueByDay,
-                expenseByDay: data.expenseByDay || local.expenseByDay,
-                expenseByCategory: data.expenseByCategory || local.expenseByCategory,
-                incomeByEvent: data.incomeByEvent || local.incomeByEvent,
-                allEvents: data.allEvents || local.allEvents,
-                restockExpenses: data.restockExpenses ?? local.restockExpenses,
-              },
-            });
-          }
-        } catch (error) {
-          console.warn("Dashboard fetch failed:", error.message);
+          console.warn("Dashboard compute failed:", e.message);
         }
       },
     }),
     [],
   );
-
-  const syncActions = useMemo(
-    () => ({
-      runSync: wrappedRunSync,
-    }),
-    [wrappedRunSync],
-  );
-
-  // Wire auto-sync: when connectivity returns (offline → online), trigger sync
-  const tokenRef = useRef(null);
-
-  // Keep tokenRef updated — we can't access useAuth here directly,
-  // but consumers pass token to runSync; store the last-used token.
-  const wrappedRunSync = useCallback(async (token) => {
-    tokenRef.current = token;
-    await syncAll(token, dispatch);
-  }, []);
-
-  useEffect(() => {
-    registerSyncFunction(() => {
-      if (tokenRef.current) {
-        triggerSync(() => syncAll(tokenRef.current, dispatch));
-      }
-    });
-  }, [registerSyncFunction, triggerSync]);
-
-  // Sync on app foreground
-  useEffect(() => {
-    const subscription = RNAppState.addEventListener("change", (nextState) => {
-      if (nextState === "active" && tokenRef.current) {
-        triggerSync(() => syncAll(tokenRef.current, dispatch));
-      }
-    });
-    return () => subscription.remove();
-  }, [triggerSync]);
 
   return (
     <AppContext.Provider
@@ -1076,7 +600,6 @@ export function AppStateProvider({ children }) {
         ...eventActions,
         ...salesActions,
         ...dashboardActions,
-        ...syncActions,
       }}
     >
       {children}

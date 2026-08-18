@@ -14,7 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
 import { EVENT_STATUSES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
-import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
 import SummaryCard from "../components/SummaryCard";
@@ -22,7 +21,6 @@ import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
 import EventTimelineCard from "../components/event/EventTimelineCard";
 import EventModal from "../components/event/EventModal";
-import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function EventsScreen({ navigation }) {
   const {
@@ -31,16 +29,13 @@ export default function EventsScreen({ navigation }) {
     addEvent,
     updateEvent,
   } = useAppState();
-  const { token } = useAuth();
   const { showToast } = useToast();
   const { colors: C } = useTheme();
   const events = state.events;
 
   useEffect(() => {
-    if (token) {
-      loadEvents(token);
-    }
-  }, [token]);
+    loadEvents();
+  }, []);
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,9 +84,9 @@ export default function EventsScreen({ navigation }) {
   const handleSaveEvent = async (eventData) => {
     let result;
     if (eventModalMode === "add") {
-      result = await addEvent(token, eventData);
+      result = await addEvent(eventData);
     } else {
-      result = await updateEvent(token, eventData.id, eventData);
+      result = await updateEvent(eventData.id, eventData);
     }
     if (result && !result.success) {
       showToast(result.message || "Failed to save event", "error");
@@ -100,7 +95,6 @@ export default function EventsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
-      <ConnectivityBanner />
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -109,7 +103,7 @@ export default function EventsScreen({ navigation }) {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await loadEvents(token);
+              await loadEvents();
               setRefreshing(false);
             }}
             colors={[C.primary]}

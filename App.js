@@ -4,29 +4,17 @@ import { NavigationContainer } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import { initDatabase } from "./src/services/database";
 import { AppStateProvider } from "./src/context/AppContext";
-import { AuthProvider, useAuth } from "./src/context/AuthContext";
-import { ConnectivityProvider } from "./src/context/ConnectivityContext";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { ToastProvider } from "./src/components/Toast";
 import TabNavigator from "./src/navigation/TabNavigator";
-import AuthStack from "./src/navigation/AuthStack";
 import { COLORS } from "./src/constants/theme";
 
 function RootNavigator() {
-  const { isAuthenticated, isRestoring } = useAuth();
-  const { isDark, colors } = useTheme();
-
-  if (isRestoring) {
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
+  const { isDark } = useTheme();
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <TabNavigator /> : <AuthStack />}
+      <TabNavigator />
       <StatusBar style={isDark ? "light" : "dark"} />
     </NavigationContainer>
   );
@@ -41,7 +29,7 @@ export default function App() {
       setDbReady(true);
     } catch (error) {
       console.error("Database init failed:", error);
-      setDbReady(true); // Still render app, API-only mode
+      setDbReady(true);
     }
   }, []);
 
@@ -55,15 +43,11 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <ConnectivityProvider>
-          <AppStateProvider>
-            <ToastProvider>
-              <RootNavigator />
-            </ToastProvider>
-          </AppStateProvider>
-        </ConnectivityProvider>
-      </AuthProvider>
+      <AppStateProvider>
+        <ToastProvider>
+          <RootNavigator />
+        </ToastProvider>
+      </AppStateProvider>
     </ThemeProvider>
   );
 }

@@ -4,7 +4,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SIZES } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 import { useAppState } from "../context/AppContext";
-import { useAuth } from "../context/AuthContext";
 import FinanceSummary from "../components/finance/FinanceSummary";
 import FinanceChart from "../components/finance/FinanceChart";
 import FilterTabs from "../components/finance/FilterTabs";
@@ -13,16 +12,13 @@ import TransactionCard from "../components/finance/TransactionCard";
 export default function FinanceScreen({ route }) {
   const { colors: C } = useTheme();
   const { state, loadDashboard } = useAppState();
-  const { token } = useAuth();
   const initialFilter = route?.params?.filter || "All";
   const [filter, setFilter] = useState(initialFilter);
   const dashboard = state.dashboard;
 
   useEffect(() => {
-    if (token) {
-      loadDashboard(token);
-    }
-  }, [token]);
+    loadDashboard();
+  }, []);
 
   const income = dashboard?.income ?? 0;
   const expenses = dashboard?.totalExpenses ?? 0;

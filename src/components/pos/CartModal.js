@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
+import { useToast } from "../Toast";
 
 export default function CartModal({
   visible,
@@ -26,6 +27,7 @@ export default function CartModal({
   onPressPay,
 }) {
   const { colors: C } = useTheme();
+  const { showToast } = useToast();
 
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [editPriceValue, setEditPriceValue] = useState("");
@@ -58,14 +60,18 @@ export default function CartModal({
     const newPrice = parseFloat(editPriceValue);
     if (newPrice && newPrice > 0) {
       onUpdatePrice(itemId, newPrice);
+    } else {
+      showToast("Enter a price greater than 0", "error");
     }
     setEditingPriceId(null);
   };
 
   const handleDiscountChange = (value) => {
-    setDiscountInput(value);
-    const parsed = parseFloat(value) || 0;
-    onSetDiscount({ ...discount, value: parsed });
+    const parsed = parseFloat(value);
+    let clamped = isNaN(parsed) ? 0 : Math.max(0, parsed);
+    if (discount.type === "percent") clamped = Math.min(clamped, 100);
+    setDiscountInput(value === "" ? "" : clamped.toString());
+    onSetDiscount({ ...discount, value: clamped });
   };
 
   const toggleDiscountType = () => {

@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
 import { CATEGORIES } from "../data/mockData";
 import { useAppState } from "../context/AppContext";
-import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
 import CategoryFilter from "../components/CategoryFilter";
@@ -20,12 +19,10 @@ import POSItemTile from "../components/pos/POSItemTile";
 import CartBar from "../components/pos/CartBar";
 import CartModal from "../components/pos/CartModal";
 import PaymentModal from "../components/pos/PaymentModal";
-import ConnectivityBanner from "../components/ConnectivityBanner";
 
 export default function POSScreen() {
   const { colors: C } = useTheme();
   const { state, createSale, loadInventory } = useAppState();
-  const { token } = useAuth();
   const { showToast } = useToast();
   const inventoryItems = state.inventory;
 
@@ -36,6 +33,7 @@ export default function POSScreen() {
   const [cartModalVisible, setCartModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const filteredItems = inventoryItems.filter((item) => {
     return selectedCategory === "All" || item.category === selectedCategory;
@@ -53,6 +51,11 @@ export default function POSScreen() {
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const addToCart = (item) => {
+    const existingQty = cart.find((c) => c.itemId === item.id)?.quantity || 0;
+    if (existingQty >= item.stock) {
+      showToast(`Only ${item.stock} in stock`, "error");
+      return;
+    }
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCart((prev) => {
       const existing = prev.find((c) => c.itemId === item.id);
@@ -75,6 +78,14 @@ export default function POSScreen() {
   };
 
   const updateQty = (itemId, delta) => {
+    if (delta > 0) {
+      const invItem = inventoryItems.find((i) => i.id === itemId);
+      const currentQty = cart.find((c) => c.itemId === itemId)?.quantity || 0;
+      if (invItem && currentQty >= invItem.stock) {
+        showToast(`Only ${invItem.stock} in stock`, "error");
+        return;
+      }
+    }
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCart((prev) => {
       return prev
@@ -99,37 +110,44 @@ export default function POSScreen() {
   };
 
   const confirmSale = async (paymentMethod) => {
-    const saleData = {
-      items: cart.map((c) => ({
-        itemId: c.itemId,
-        name: c.name,
-        quantity: c.quantity,
-        unitPrice: c.unitPrice,
-        originalPrice: c.originalPrice,
-      })),
-      discount:
-        discount.value > 0
-          ? {
-              type: discount.type === "percent" ? "percent" : "fixed",
-              value: discount.value,
-              amount: discountAmount,
-            }
-          : null,
-      total,
-      paymentMethod,
-    };
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const saleData = {
+        items: cart.map((c) => ({
+          itemId: c.itemId,
+          name: c.name,
+          quantity: c.quantity,
+          unitPrice: c.unitPrice,
+          originalPrice: c.originalPrice,
+        })),
+        discount:
+          discount.value > 0
+            ? {
+                type: discount.type === "percent" ? "percent" : "fixed",
+                value: discount.value,
+                amount: discountAmount,
+              }
+            : null,
+        total,
+        paymentMethod,
+      };
 
-    const result = await createSale(token, saleData);
-    if (result?.success) {
-      // Reload inventory to get updated stock from backend
-      loadInventory(token);
-      setCart([]);
-      setDiscount({ type: "percent", value: 0 });
-      setPaymentModalVisible(false);
-      setCartModalVisible(false);
-      setShowSuccess(true);
-    } else if (result) {
-      showToast(result.message || "Failed to complete sale", "error");
+      const result = await createSale(saleData);
+      if (result?.success) {
+        loadInventory();
+        setCart([]);
+        setDiscount({ type: "percent", value: 0 });
+        setPaymentModalVisible(false);
+        setCartModalVisible(false);
+        setShowSuccess(true);
+      } else if (result) {
+        showToast(result.message || "Failed to complete sale", "error");
+      }
+    } catch (error) {
+      showToast("Failed to complete sale", "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -142,7 +160,6 @@ export default function POSScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
-      <ConnectivityBanner />
       <View style={styles.header}>
         <Text style={[styles.title, { color: C.textPrimary }]}>POS</Text>
         {state.sales.length > 0 && (
@@ -169,7 +186,7 @@ export default function POSScreen() {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await loadInventory(token);
+              await loadInventory();
               setRefreshing(false);
             }}
             colors={[C.primary]}
@@ -216,6 +233,7 @@ export default function POSScreen() {
       <PaymentModal
         visible={paymentModalVisible}
         total={total}
+        submitting={submitting}
         onClose={() => setPaymentModalVisible(false)}
         onConfirm={confirmSale}
       />
