@@ -1,2 +1,11 @@
-Income by evenet and expense breakdown should not be shown in the all tab, remove it
-Have a slight visual bug when going to the dashboard page, the pills load a lil bit slower which then strecth the transactions list cards, in finance transaction list there is no qr or cash
+# Known Issues
+
+- POS sale payload shape mismatch and related fixes — see `plans/14_POS_FIXES.md`.
+
+## Resolved
+- ~~Income by event and expense breakdown shown in the All tab~~ — charts now
+  only render on the Income/Expenses tabs (`FinanceChart.js`)
+- ~~Finance transaction list missing QR/cash indicator~~ — payment method pill
+  added to `TransactionCard.js`
+- ~~Dashboard pills load slowly and stretch transaction cards~~ — fixed with
+  `minHeight` on the card (`DashboardScreen.js`)

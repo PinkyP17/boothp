@@ -1,64 +1,62 @@
 # Artist Booth Manager — Project Status
 
-## Completed Screens
+_Last updated: 2026-08-10. Goal: beta test at end of August 2026._
 
-### 1. Dashboard ✅
-- Welcome greeting + summary cards (income, expenses, net profit)
-- Upcoming events list
-- Bottom tab navigation (5 tabs)
+## Where we are
 
-### 2. Inventory ✅
-- Item list with search + category filter
-- Summary cards (total stock, inventory value)
-- Add / Edit / Restock items via modals
-- Restock with cost tracking (expense note, not persisted yet)
-- FAB for adding items
-- Out-of-stock visual indicator
+All core features are complete and the backend is **deployed to production**.
+The remaining work for beta is distribution (EAS build) and an end-to-end
+device test — not app features.
 
-### 3. Events ✅
-- Timeline view with colored status dots (green=active, blue=upcoming, gray=past)
-- Status filter pills (All / Upcoming / Active / Past)
-- Search events by name
-- Event detail modal with expense list
-- Add/delete per-event expenses (Booth Fee, Transportation, Food, Hotel, Supplies, Other)
-- Add/edit events via modal
-- Summary cards (total events, total expenses)
+## Completed
 
-### 4. POS ✅
-- 2-column item grid with category filter
-- Tap-to-add cart with quantity badges
-- Cart bar (sticky bottom) with item count + total
-- Cart modal: quantity +/-, inline price override, % or $ discount
-- Payment modal: Cash / QR selection + confirm
-- Sale success toast (auto-dismiss)
-- Sales counter ("X sales today")
+### Frontend (all screens done)
+- **Dashboard** — financial summary cards, upcoming events, recent transactions
+- **Inventory** — CRUD + restock with cost tracking, images, search/filter
+- **POS** — cart, price override, discounts, cash/QR payment, decrements stock
+- **Events** — timeline, per-event expenses, per-event currency, event detail screen
+- **Finance** — charts, income/expense filters, transaction history with payment pills
+- **Auth** — login / signup wired to backend JWT
+- **More** — Settings, About
+- Dark theme (ThemeContext), toasts, loading states, pull-to-refresh
 
-## Remaining
+### Backend (Spring Boot 4 / Java 17, in `backend/`)
+- JWT auth, inventory / events / sales / restock / dashboard APIs
+- Postgres via JPA, global exception handling, validation
 
-### 5. More (placeholder)
-- Currently just shows "More" text
-- Planned: settings, profile, theme toggle
+### Offline mode (Phase 9 + 13a-c, complete)
+- SQLite local-first storage, sync queue with create/update/delete
+- Auto-sync on reconnect and on app foreground
+- Dashboard computed locally from SQLite when offline
 
-## Current Architecture
-```
-src/
-  components/
-    SearchBar.js, CategoryFilter.js, SummaryCard.js, EventCard.js  (shared)
-    event/       (4 components)
-    inventory/   (2 components)
-    pos/         (4 components)
-  constants/theme.js
-  data/mockData.js
-  navigation/TabNavigator.js
-  screens/    (5 screens)
-```
+### Deployment (done 2026-08-10)
+- **API**: https://boothp.onrender.com — Render free tier, Docker runtime,
+  root directory `backend`. Sleeps after ~15 idle min (~1 min cold start).
+- **DB**: Supabase Postgres, connected via **session pooler, port 5432**
+  (direct connection is IPv6-only — unreachable from Render; transaction
+  pooler 6543 breaks JDBC).
+- Secrets are Render env vars: `DATABASE_URL`, `DATABASE_USERNAME`,
+  `DATABASE_PASSWORD`, `JWT_SECRET`. Values in `application.properties`
+  are local-dev fallbacks only.
+- Frontend reads `EXPO_PUBLIC_API_URL` from `.env` (gitignored);
+  falls back to LAN IP in `src/config/api.js` for local dev.
+- Gotcha hit during deploy: Hibernate `ddl-auto=update` silently failed to
+  create the `users` table on first boot — created manually in Supabase SQL
+  Editor. Other schema changes self-heal on restart.
+- Smoke-tested: signup, login, inventory, dashboard all return correct
+  responses. Test account: smoketest@example.com / test1234.
 
-## Tech Debt / Future Work
-- All data is mock/hardcoded — needs Spring Boot backend connection
-- No shared state between screens (each screen has its own useState)
-- POS sales don't decrement inventory stock yet
-- Dashboard stats are hardcoded, not derived from POS sales/event expenses
-- Date inputs are plain text (need date picker)
-- No dark theme yet (colors ready in theme.js, just needs toggle)
-- No persistent storage (sales/inventory reset on app reload)
-- Community tab (future feature)
+## Remaining for beta
+
+1. **EAS build** (next up) — install/configure EAS CLI, produce Android APK
+   for testers. Needs a free expo.dev account.
+2. **Device test** — full convention simulation on a real phone against the
+   live backend, including airplane-mode → reconnect sync cycle.
+3. **Tester onboarding** — share APK link, note the free-tier cold start
+   (first request of the day can take ~1 min).
+
+## Post-beta / future
+- Rotate Supabase DB password (was shared in dev chat during setup)
+- Data export (CSV/PDF), multi-image per item, notifications
+- Silence Spring's in-memory UserDetailsService fallback noise in logs
+- Tests + linting (none configured yet)

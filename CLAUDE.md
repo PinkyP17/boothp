@@ -6,22 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npx expo start          # Start dev server (press a for Android, i for iOS, w for web)
-npx expo start --android
-npx expo start --ios
-npx expo start --web
+npx expo start -c       # Start with cleared cache (needed after .env changes)
+
+cd backend && ./mvnw spring-boot:run   # Run backend locally (needs local Postgres)
+cd backend && ./mvnw package -DskipTests   # Build backend jar
 ```
 
 No test runner or linter is configured.
 
+## Deployment
+
+- **API**: https://boothp.onrender.com (Render free tier, Docker, root dir `backend`; sleeps after ~15 idle min)
+- **DB**: Supabase Postgres via the session pooler (port 5432 — direct connection is IPv6-only and unreachable from Render)
+- Backend secrets come from Render env vars (`DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `JWT_SECRET`); `application.properties` holds local-dev fallbacks only
+- The app reads `EXPO_PUBLIC_API_URL` from `.env` (gitignored), falling back to a LAN IP in `src/config/api.js` for local dev
+- See `plans/PROJECT_STATUS.md` for current status and remaining beta work
+
 ## Architecture
 
-This is a React Native + Expo (SDK 54) app for managing an artist booth business at conventions. It uses the New Architecture (`newArchEnabled: true`). All source code is plain JavaScript (no TypeScript).
+This is a React Native + Expo (SDK 54) app for managing an artist booth business at conventions, backed by a Spring Boot 4 / Java 17 API in `backend/` with Postgres. The app uses the New Architecture (`newArchEnabled: true`). All frontend source is plain JavaScript (no TypeScript).
 
 ### State Management
 
-All app state lives in a single `useReducer` in `src/context/AppContext.js`, exposed via `AppStateProvider` and the `useAppState()` hook. The state shape has three top-level keys: `inventory`, `sales`, and `events`. Data currently comes from mock data in `src/data/mockData.js` — there is no backend yet.
+App state lives in a `useReducer` in `src/context/AppContext.js`, exposed via `AppStateProvider` and the `useAppState()` hook. Additional contexts: `AuthContext` (JWT auth, token in expo-secure-store), `ConnectivityContext` (online/offline detection), `ThemeContext` (dark mode).
 
-Reducer action types: `ADD_TO_INVENTORY`, `UPDATE_INVENTORY_ITEM`, `RESTOCK_ITEM`, `ADD_SALE`, `ADD_EVENT`, `UPDATE_EVENT`, `ADD_EVENT_EXPENSE`, `DELETE_EVENT_EXPENSE`.
+Data is **local-first**: everything is persisted in SQLite (`src/services/database.js`, repositories in `src/services/repositories/`), writes work offline via a sync queue, and `src/services/syncEngine.js` pushes queued changes (create/update/delete) to the backend on reconnect and on app foreground. When online, data also loads from the API (`src/config/api.js` for the base URL). The dashboard is fetched from the API online and computed locally from SQLite offline.
 
 ### Navigation
 
@@ -46,10 +55,13 @@ All colors, sizes, and shadows are centralized in `src/constants/theme.js` (`COL
 
 ### File Organization
 
-- `src/screens/` — top-level screen components
+- `src/screens/` — top-level screen components (incl. Login/SignUp, EventDetail)
 - `src/components/` — reusable UI, organized by feature (`pos/`, `event/`, `inventory/`, `finance/`)
 - `src/navigation/` — navigator definitions
-- `src/context/` — global state provider
+- `src/context/` — providers: AppContext, AuthContext, ConnectivityContext, ThemeContext
+- `src/services/` — SQLite database, repositories, sync engine, connectivity, images
+- `src/config/` — API base URL
 - `src/constants/` — theme tokens
-- `src/data/` — mock data and category constants
+- `src/data/` — category constants (mock data no longer the data source)
 - `plans/` — design and planning documents for each feature area
+- `backend/` — Spring Boot API (controllers, services, entities, JWT config); its own `plans/` docs
