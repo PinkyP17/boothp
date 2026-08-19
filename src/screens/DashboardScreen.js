@@ -56,9 +56,9 @@ export default function DashboardScreen({ navigation }) {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => {
+            onRefresh={() => {
               setRefreshing(true);
-              await loadDashboard();
+              loadDashboard();
               setRefreshing(false);
             }}
             colors={[C.primary]}

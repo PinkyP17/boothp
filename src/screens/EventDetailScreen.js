@@ -141,15 +141,15 @@ export default function EventDetailScreen({ navigation, route }) {
   const netProfit = totalSales - totalExpenses;
   const salesByDate = groupSalesByDate(eventSales);
 
-  const handleEditSave = async (eventData) => {
-    const result = await updateEvent(eventData.id, eventData);
+  const handleEditSave = (eventData) => {
+    const result = updateEvent(eventData.id, eventData);
     if (result && !result.success) {
       showToast(result.message || "Failed to update event", "error");
     }
   };
 
-  const handleAddExpense = async (expense) => {
-    const result = await addEventExpense(event.id, expense);
+  const handleAddExpense = (expense) => {
+    const result = addEventExpense(event.id, expense);
     if (result && !result.success) {
       showToast(result.message || "Failed to add expense", "error");
     }
@@ -161,13 +161,18 @@ export default function EventDetailScreen({ navigation, route }) {
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => deleteEventExpense(event.id, expenseId),
+        onPress: () => {
+          const result = deleteEventExpense(event.id, expenseId);
+          if (result && !result.success) {
+            showToast(result.message || "Failed to delete expense", "error");
+          }
+        },
       },
     ]);
   };
 
-  const handleSaveNotes = async () => {
-    await updateEvent(event.id, {
+  const handleSaveNotes = () => {
+    updateEvent(event.id, {
       id: event.id,
       name: event.name,
       date: event.date,
@@ -204,9 +209,10 @@ export default function EventDetailScreen({ navigation, route }) {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => {
+            onRefresh={() => {
               setRefreshing(true);
-              await Promise.all([loadEvents(), loadSales()]);
+              loadEvents();
+              loadSales();
               setRefreshing(false);
             }}
             colors={[C.primary]}

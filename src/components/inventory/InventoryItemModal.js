@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
-import { CATEGORIES } from "../../data/mockData";
+import { CATEGORIES } from "../../constants/categories";
 import { pickImage, saveImageLocally, deleteImage } from "../../services/imageService";
 
 const editableCategories = CATEGORIES.filter((c) => c !== "All");

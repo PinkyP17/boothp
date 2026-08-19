@@ -284,8 +284,10 @@ export function AppStateProvider({ children }) {
         try {
           const items = inventoryRepo.getAll().map(mapInventoryItem);
           dispatch({ type: "SET_INVENTORY", payload: items });
+          return { success: true };
         } catch (e) {
           console.warn("Loading inventory failed:", e.message);
+          return { success: false, message: "Failed to load inventory" };
         } finally {
           dispatch({ type: "SET_LOADING", payload: false });
         }
@@ -384,9 +386,15 @@ export function AppStateProvider({ children }) {
       },
 
       deleteInventoryItem: (itemId) => {
-        itemImagesRepo.removeAllForItem(itemId);
-        inventoryRepo.deleteItem(itemId);
+        try {
+          itemImagesRepo.removeAllForItem(itemId);
+          inventoryRepo.deleteItem(itemId);
+        } catch (error) {
+          console.warn("Failed to delete inventory item:", error.message);
+          return { success: false, message: "Failed to delete item" };
+        }
         dispatch({ type: "DELETE_INVENTORY_ITEM", payload: itemId });
+        return { success: true };
       },
     }),
     [],
@@ -399,8 +407,10 @@ export function AppStateProvider({ children }) {
         try {
           const events = eventsRepo.getAll();
           dispatch({ type: "SET_EVENTS", payload: events });
+          return { success: true };
         } catch (e) {
           console.warn("Loading events failed:", e.message);
+          return { success: false, message: "Failed to load events" };
         } finally {
           dispatch({ type: "SET_LOADING", payload: false });
         }
@@ -494,16 +504,28 @@ export function AppStateProvider({ children }) {
       },
 
       deleteEventExpense: (eventId, expenseId) => {
-        eventsRepo.deleteExpense(expenseId);
+        try {
+          eventsRepo.deleteExpense(expenseId);
+        } catch (error) {
+          console.warn("Failed to delete expense:", error.message);
+          return { success: false, message: "Failed to delete expense" };
+        }
         dispatch({
           type: "DELETE_EVENT_EXPENSE",
           payload: { eventId, expenseId },
         });
+        return { success: true };
       },
 
       deleteEvent: (eventId) => {
-        eventsRepo.deleteEvent(eventId);
+        try {
+          eventsRepo.deleteEvent(eventId);
+        } catch (error) {
+          console.warn("Failed to delete event:", error.message);
+          return { success: false, message: "Failed to delete event" };
+        }
         dispatch({ type: "DELETE_EVENT", payload: eventId });
+        return { success: true };
       },
     }),
     [],
@@ -516,8 +538,10 @@ export function AppStateProvider({ children }) {
         try {
           const sales = salesRepo.getAll();
           dispatch({ type: "SET_SALES", payload: sales });
+          return { success: true };
         } catch (e) {
           console.warn("Loading sales failed:", e.message);
+          return { success: false, message: "Failed to load sales" };
         } finally {
           dispatch({ type: "SET_LOADING", payload: false });
         }
@@ -583,8 +607,10 @@ export function AppStateProvider({ children }) {
         try {
           const dashboard = computeDashboard();
           dispatch({ type: "SET_DASHBOARD", payload: dashboard });
+          return { success: true };
         } catch (e) {
           console.warn("Dashboard compute failed:", e.message);
+          return { success: false, message: "Failed to load dashboard" };
         }
       },
     }),

@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
-import { CATEGORIES } from "../data/mockData";
+import { CATEGORIES } from "../constants/categories";
 import { useAppState } from "../context/AppContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
@@ -109,7 +109,7 @@ export default function POSScreen() {
     setCart((prev) => prev.filter((c) => c.itemId !== itemId));
   };
 
-  const confirmSale = async (paymentMethod) => {
+  const confirmSale = (paymentMethod) => {
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -133,7 +133,7 @@ export default function POSScreen() {
         paymentMethod,
       };
 
-      const result = await createSale(saleData);
+      const result = createSale(saleData);
       if (result?.success) {
         loadInventory();
         setCart([]);
@@ -184,9 +184,9 @@ export default function POSScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => {
+            onRefresh={() => {
               setRefreshing(true);
-              await loadInventory();
+              loadInventory();
               setRefreshing(false);
             }}
             colors={[C.primary]}

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SIZES } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
-import { EXPENSE_CATEGORIES } from "../../data/mockData";
+import { EXPENSE_CATEGORIES } from "../../constants/categories";
 
 export default function EventExpenseModal({ visible, onClose, onSave }) {
   const { colors: C } = useTheme();

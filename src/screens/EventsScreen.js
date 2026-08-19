@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
-import { EVENT_STATUSES } from "../data/mockData";
+import { EVENT_STATUSES } from "../constants/categories";
 import { useAppState } from "../context/AppContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
@@ -81,12 +81,12 @@ export default function EventsScreen({ navigation }) {
     navigation.navigate("EventDetail", { eventId: event.id });
   };
 
-  const handleSaveEvent = async (eventData) => {
+  const handleSaveEvent = (eventData) => {
     let result;
     if (eventModalMode === "add") {
-      result = await addEvent(eventData);
+      result = addEvent(eventData);
     } else {
-      result = await updateEvent(eventData.id, eventData);
+      result = updateEvent(eventData.id, eventData);
     }
     if (result && !result.success) {
       showToast(result.message || "Failed to save event", "error");
@@ -101,9 +101,9 @@ export default function EventsScreen({ navigation }) {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => {
+            onRefresh={() => {
               setRefreshing(true);
-              await loadEvents();
+              loadEvents();
               setRefreshing(false);
             }}
             colors={[C.primary]}

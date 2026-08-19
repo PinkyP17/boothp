@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
-import { CATEGORIES } from "../data/mockData";
+import { CATEGORIES } from "../constants/categories";
 import { useAppState } from "../context/AppContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
@@ -71,14 +71,14 @@ export default function InventoryScreen() {
     setModalVisible(true);
   };
 
-  const handleSave = async (data) => {
+  const handleSave = (data) => {
     let result;
     if (modalMode === "add") {
-      result = await addInventoryItem(data);
+      result = addInventoryItem(data);
     } else if (modalMode === "edit") {
-      result = await updateInventoryItem(data.id, data);
+      result = updateInventoryItem(data.id, data);
     } else if (modalMode === "restock") {
-      result = await restockItem(data.itemId, {
+      result = restockItem(data.itemId, {
         quantity: data.quantity,
         cost: data.cost,
       });
@@ -96,9 +96,9 @@ export default function InventoryScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={async () => {
+            onRefresh={() => {
               setRefreshing(true);
-              await loadInventory();
+              loadInventory();
               setRefreshing(false);
             }}
             colors={[C.primary]}
