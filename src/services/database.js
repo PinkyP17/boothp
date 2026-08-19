@@ -5,9 +5,10 @@ let db = null;
 export function initDatabase() {
   db = openDatabaseSync("artistbooth.db");
 
+  db.execSync(`PRAGMA foreign_keys = ON;`);
+
   db.runSync(`CREATE TABLE IF NOT EXISTS inventory_items (
     id INTEGER PRIMARY KEY,
-    local_id TEXT UNIQUE,
     name TEXT NOT NULL,
     category TEXT NOT NULL,
     production_cost REAL NOT NULL,
@@ -20,7 +21,6 @@ export function initDatabase() {
 
   db.runSync(`CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY,
-    local_id TEXT UNIQUE,
     subtotal REAL NOT NULL,
     discount_type TEXT,
     discount_value REAL,
@@ -32,8 +32,7 @@ export function initDatabase() {
 
   db.runSync(`CREATE TABLE IF NOT EXISTS sale_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sale_id INTEGER,
-    sale_local_id TEXT,
+    sale_id INTEGER NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
     item_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     quantity INTEGER NOT NULL,
@@ -43,7 +42,6 @@ export function initDatabase() {
 
   db.runSync(`CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY,
-    local_id TEXT UNIQUE,
     name TEXT NOT NULL,
     date TEXT NOT NULL,
     end_date TEXT NOT NULL,
@@ -56,9 +54,7 @@ export function initDatabase() {
 
   db.runSync(`CREATE TABLE IF NOT EXISTS event_expenses (
     id INTEGER PRIMARY KEY,
-    local_id TEXT UNIQUE,
-    event_id INTEGER,
-    event_local_id TEXT,
+    event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     category TEXT NOT NULL,
     amount REAL NOT NULL,
     created_at TEXT NOT NULL
@@ -66,8 +62,7 @@ export function initDatabase() {
 
   db.runSync(`CREATE TABLE IF NOT EXISTS item_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    item_id INTEGER,
-    item_local_id TEXT,
+    item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
     image_uri TEXT NOT NULL,
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
@@ -75,7 +70,7 @@ export function initDatabase() {
 
   db.runSync(`CREATE TABLE IF NOT EXISTS restocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    item_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL,
     cost REAL NOT NULL,
     created_at TEXT NOT NULL

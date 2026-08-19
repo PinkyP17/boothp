@@ -48,18 +48,16 @@ Always use `src/constants/theme.js` tokens (`COLORS`/`SIZES`/`CARD_SHADOW`) or `
 - **No tests, no linter** configured for the project (noted in `CLAUDE.md`). Not addressed as part of any pass so far.
 - **Data model naming vs. Medusa**: once the friend's Medusa backend exists, decide how much this app's local entity naming should mirror Medusa's vocabulary (Product/Variant/Inventory/Order) versus staying as-is. Tracked in `plans/15_LOCAL_ONLY_MIGRATION.md` item #3.
 
-## Data-layer cleanup, found 2026-08-19 (not done yet)
+## Data-layer cleanup, found 2026-08-19, done 2026-08-19
 
-A review of `database.js`, `src/services/repositories/`, and `AppContext.js` found leftovers from the pre-local-only design that should be cleaned up in a dedicated pass:
+A review of `database.js`, `src/services/repositories/`, and `AppContext.js` found leftovers from the pre-local-only design. All fixed in one pass, verified by a real Metro bundle (`npx expo export --platform android`, 1130 modules, 0 errors) after the change:
 
-- **Vestigial `local_id` dual-key scheme**: every syncable table (`inventory_items`, `sales`, `events`, `event_expenses`) still has both `id` and a client-generated `local_id`, and every repo still joins/writes on `id OR local_id` with `local_id ?? localId` fallback chains. This was needed when rows could exist locally before a server assigned a real `id`; there's no server anymore, so `id` (SQLite's own autoincrement) is sufficient on its own. Removing this also kills most of the camelCase/snake_case fallback noise spread through the repos and `AppContext.js`.
-- **Dead code**: `inventoryRepo.deleteByLocalId` and `eventsRepo.deleteByLocalId` are defined but never called anywhere. Likely more to find once `local_id` itself is removed.
-- **No transactions** around multi-statement writes — `salesRepo.insert` (sale row + N sale_item rows), `eventsRepo.upsertWithExpenses` (delete + reinsert expenses), and `itemImagesRepo.replaceImages` (delete + reinsert images) each run as separate uncommitted `runSync` calls. A crash mid-sequence leaves partial data, which matters more now than it used to since there's no server copy to fall back on. Should wrap each in `db.withTransactionSync()`.
-- **No single-row lookups**: no repo exposes `getById`. `createSale` and `restockItem` both call `inventoryRepo.getAll().find(...)`, doing a full table scan to find one row.
-- **Orphaned `restocks` rows**: `deleteInventoryItem` cleans up `item_images` but not `restocks` — restock history for a deleted item is never removed or filtered.
-- **Duplicated stock-decrement logic**: the `ADD_SALE` reducer case recomputes updated inventory stock independently of the SQL update already done in the `createSale` action — same rule implemented twice, currently in agreement but able to drift.
-
-Suggested order: drop `local_id` first (biggest simplification, unblocks the rest), then dedupe/add `getById`, then wrap the multi-statement writes in transactions.
+- **Dropped the `local_id` dual-key scheme.** `inventory_items`, `sales`, `events`, `event_expenses` now key on `id` alone (SQLite's own autoincrement, read back via `lastInsertRowId` right after insert). This also removed the `id OR local_id` join branches and the `local_id ?? localId` fallback chains throughout the repos and `AppContext.js`. `inventoryRepo.deleteByLocalId`/`eventsRepo.deleteByLocalId` (dead code) removed with it.
+- **Added foreign keys with `ON DELETE CASCADE`** (`PRAGMA foreign_keys = ON` in `database.js`) for `event_expenses.event_id`, `item_images.item_id`, `restocks.item_id`, `sale_items.sale_id`. Deleting an event/item/sale now cleans up its children automatically — this also fixed the orphaned `restocks` rows left behind when an inventory item was deleted. `sale_items.item_id` deliberately has **no** FK constraint, so sale history survives an inventory item being deleted later.
+- **Split `upsert()` into `insert()`/`update()`** in `inventoryRepo` and `eventsRepo` — needed because `INSERT OR REPLACE` (the old upsert mechanism) is a delete+insert under the hood, which would have triggered the new `ON DELETE CASCADE` and wiped an item's images/restocks on every edit.
+- **Added `getById`** to `inventoryRepo`; `createSale` and `restockItem` now use it instead of `getAll().find(...)` full-table scans.
+- **Wrapped multi-statement writes in `db.withTransactionSync()`**: `salesRepo.insert` (sale + sale_items), `itemImagesRepo.replaceImages` (delete + reinsert).
+- **Collapsed the duplicated stock-decrement logic**: `createSale` now computes the new stock values once and passes them to the `ADD_SALE` reducer via `stockUpdates`, instead of the reducer independently recomputing the same thing from `sale.items`.
 
 
 **Design principal - keep it something simple but functional, I was thinking of a few things, nothing design, 1984 pilot manual https://youtu.be/uJblcC4lKYw?si=g0rz7VTnJnVUD0XM, idk maybe we can make a few themes around something like this but this is the plan for the future

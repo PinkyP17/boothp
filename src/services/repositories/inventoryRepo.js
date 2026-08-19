@@ -7,38 +7,55 @@ export function getAll() {
   );
 }
 
-export function upsert(item) {
+export function getById(id) {
+  const db = getDb();
+  return db.getFirstSync("SELECT * FROM inventory_items WHERE id = ?", [id]);
+}
+
+export function insert(item) {
+  const db = getDb();
+  const result = db.runSync(
+    `INSERT INTO inventory_items
+      (name, category, production_cost, selling_price, stock, image_uri, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      item.name,
+      item.category,
+      item.production_cost,
+      item.selling_price,
+      item.stock,
+      item.image_uri ?? null,
+      item.created_at,
+      item.updated_at,
+    ]
+  );
+  return result.lastInsertRowId;
+}
+
+export function update(item) {
   const db = getDb();
   // Preserve existing image_uri if not provided
-  const existing = item.id
-    ? db.getFirstSync("SELECT image_uri FROM inventory_items WHERE id = ?", [item.id])
-    : null;
+  const existing = db.getFirstSync(
+    "SELECT image_uri FROM inventory_items WHERE id = ?",
+    [item.id]
+  );
   const imageUri = item.image_uri ?? existing?.image_uri ?? null;
 
   db.runSync(
-    `INSERT OR REPLACE INTO inventory_items
-      (id, local_id, name, category, production_cost, selling_price, stock, image_uri, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `UPDATE inventory_items
+    SET name = ?, category = ?, production_cost = ?, selling_price = ?, stock = ?, image_uri = ?, updated_at = ?
+    WHERE id = ?`,
     [
-      item.id || null,
-      item.local_id || null,
       item.name,
       item.category,
-      item.production_cost ?? item.productionCost,
-      item.selling_price ?? item.sellingPrice,
+      item.production_cost,
+      item.selling_price,
       item.stock,
       imageUri,
-      item.created_at ?? item.createdAt ?? new Date().toISOString(),
-      item.updated_at ?? item.updatedAt ?? new Date().toISOString(),
+      item.updated_at,
+      item.id,
     ]
   );
-}
-
-export function upsertBatch(items) {
-  const db = getDb();
-  for (const item of items) {
-    upsert(item);
-  }
 }
 
 export function updateStock(itemId, newStock) {
@@ -51,10 +68,6 @@ export function updateStock(itemId, newStock) {
 
 export function deleteItem(itemId) {
   const db = getDb();
+  // item_images and restocks rows are removed automatically via ON DELETE CASCADE
   db.runSync("DELETE FROM inventory_items WHERE id = ?", [itemId]);
-}
-
-export function deleteByLocalId(localId) {
-  const db = getDb();
-  db.runSync("DELETE FROM inventory_items WHERE local_id = ?", [localId]);
 }

@@ -8,10 +8,6 @@ import * as restockRepo from "../services/repositories/restockRepo";
 
 const AppContext = createContext();
 
-function generateLocalId() {
-  return `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
 const initialState = {
   inventory: [],
   sales: [],
@@ -50,13 +46,10 @@ function appReducer(state, action) {
       return { ...state, sales: action.payload };
 
     case "ADD_SALE": {
-      const sale = action.payload;
+      const { sale, stockUpdates } = action.payload;
       const updatedInventory = state.inventory.map((item) => {
-        const soldItem = sale.items.find((s) => s.itemId === item.id);
-        if (soldItem) {
-          return { ...item, stock: Math.max(0, item.stock - soldItem.quantity) };
-        }
-        return item;
+        const update = stockUpdates.find((u) => u.itemId === item.id);
+        return update ? { ...item, stock: update.newStock } : item;
       });
       return {
         ...state,
@@ -129,12 +122,7 @@ function appReducer(state, action) {
 
 // Map SQLite row to frontend shape for inventory
 function mapInventoryItem(row) {
-  // Load images from junction table
-  const imageRows = row.id
-    ? itemImagesRepo.getByItemId(row.id)
-    : row.local_id
-      ? itemImagesRepo.getByItemLocalId(row.local_id)
-      : [];
+  const imageRows = itemImagesRepo.getByItemId(row.id);
   const images = imageRows.map((r) => r.image_uri);
 
   // Fallback: if no images in junction table but legacy image_uri exists, use it
@@ -144,7 +132,6 @@ function mapInventoryItem(row) {
 
   return {
     id: row.id,
-    localId: row.local_id,
     name: row.name,
     category: row.category,
     productionCost: row.production_cost,
@@ -189,7 +176,7 @@ function computeDashboard() {
   for (const sale of sales) {
     const itemNames = (sale.items || []).map((i) => `${i.quantity}x ${i.name}`).join(", ");
     transactions.push({
-      id: sale.id || sale.localId,
+      id: sale.id,
       type: "income",
       description: itemNames || "Sale",
       amount: sale.total,
@@ -200,7 +187,7 @@ function computeDashboard() {
   for (const event of events) {
     for (const exp of event.expenses || []) {
       transactions.push({
-        id: exp.id || exp.localId,
+        id: exp.id,
         type: "event_expense",
         description: exp.category,
         amount: exp.amount,
@@ -296,11 +283,9 @@ export function AppStateProvider({ children }) {
       addInventoryItem: (itemData) => {
         const { imageUri, images: itemImages, ...data } = itemData;
         const imageList = itemImages && itemImages.length > 0 ? itemImages : imageUri ? [imageUri] : [];
-        const localId = generateLocalId();
         const now = new Date().toISOString();
 
-        const localItem = {
-          local_id: localId,
+        const newItem = {
           name: data.name,
           category: data.category,
           production_cost: data.productionCost,
@@ -311,21 +296,19 @@ export function AppStateProvider({ children }) {
           updated_at: now,
         };
 
+        let itemId;
         try {
-          inventoryRepo.upsert(localItem);
+          itemId = inventoryRepo.insert(newItem);
         } catch (error) {
           console.warn("Failed to save inventory item:", error.message);
           return { success: false, message: "Failed to save item" };
         }
 
         if (imageList.length > 0) {
-          itemImagesRepo.replaceImages(null, localId, imageList);
+          itemImagesRepo.replaceImages(itemId, imageList);
         }
 
-        const stateItem = {
-          ...mapInventoryItem({ ...localItem, id: null }),
-          localId,
-        };
+        const stateItem = mapInventoryItem({ ...newItem, id: itemId });
         dispatch({ type: "ADD_TO_INVENTORY", payload: stateItem });
         return { success: true };
       },
@@ -335,7 +318,7 @@ export function AppStateProvider({ children }) {
         const imageList = itemImages && itemImages.length > 0 ? itemImages : imageUri ? [imageUri] : [];
 
         try {
-          inventoryRepo.upsert({
+          inventoryRepo.update({
             id: itemId,
             name: data.name,
             category: data.category,
@@ -344,14 +327,13 @@ export function AppStateProvider({ children }) {
             stock: data.stock,
             image_uri: imageList[0] || null,
             updated_at: new Date().toISOString(),
-            created_at: data.createdAt || new Date().toISOString(),
           });
         } catch (error) {
           console.warn("Failed to update inventory item:", error.message);
           return { success: false, message: "Failed to update item" };
         }
 
-        itemImagesRepo.replaceImages(itemId, null, imageList);
+        itemImagesRepo.replaceImages(itemId, imageList);
 
         dispatch({
           type: "UPDATE_INVENTORY_ITEM",
@@ -361,13 +343,13 @@ export function AppStateProvider({ children }) {
       },
 
       restockItem: (itemId, restockData) => {
-        const existing = inventoryRepo.getAll().find((i) => i.id === itemId);
+        const existing = inventoryRepo.getById(itemId);
         if (!existing) {
           return { success: false, message: "Item not found" };
         }
 
         try {
-          inventoryRepo.upsert({
+          inventoryRepo.update({
             ...existing,
             stock: existing.stock + restockData.quantity,
             updated_at: new Date().toISOString(),
@@ -387,7 +369,7 @@ export function AppStateProvider({ children }) {
 
       deleteInventoryItem: (itemId) => {
         try {
-          itemImagesRepo.removeAllForItem(itemId);
+          // item_images and restocks rows are removed automatically via ON DELETE CASCADE
           inventoryRepo.deleteItem(itemId);
         } catch (error) {
           console.warn("Failed to delete inventory item:", error.message);
@@ -417,11 +399,9 @@ export function AppStateProvider({ children }) {
       },
 
       addEvent: (eventData) => {
-        const localId = generateLocalId();
         const now = new Date().toISOString();
 
-        const localEvent = {
-          local_id: localId,
+        const newEvent = {
           name: eventData.name,
           date: eventData.date,
           end_date: eventData.endDate,
@@ -432,15 +412,16 @@ export function AppStateProvider({ children }) {
           created_at: now,
         };
 
+        let eventId;
         try {
-          eventsRepo.upsert(localEvent);
+          eventId = eventsRepo.insert(newEvent);
         } catch (error) {
           console.warn("Failed to save event:", error.message);
           return { success: false, message: "Failed to save event" };
         }
 
         const stateEvent = {
-          localId,
+          id: eventId,
           name: eventData.name,
           date: eventData.date,
           endDate: eventData.endDate,
@@ -457,7 +438,7 @@ export function AppStateProvider({ children }) {
 
       updateEvent: (eventId, eventData) => {
         try {
-          eventsRepo.upsert({
+          eventsRepo.update({
             id: eventId,
             name: eventData.name,
             date: eventData.date,
@@ -466,7 +447,6 @@ export function AppStateProvider({ children }) {
             status: eventData.status,
             currency: eventData.currency,
             notes: eventData.notes,
-            created_at: eventData.createdAt || new Date().toISOString(),
           });
         } catch (error) {
           console.warn("Failed to update event:", error.message);
@@ -481,14 +461,12 @@ export function AppStateProvider({ children }) {
       },
 
       addEventExpense: (eventId, expenseData) => {
-        const localId = generateLocalId();
         const now = new Date().toISOString();
 
         try {
           eventsRepo.insertExpense(
-            { local_id: localId, category: expenseData.category, amount: expenseData.amount, created_at: now },
+            { category: expenseData.category, amount: expenseData.amount, created_at: now },
             eventId,
-            null,
           );
         } catch (error) {
           console.warn("Failed to add expense:", error.message);
@@ -548,7 +526,6 @@ export function AppStateProvider({ children }) {
       },
 
       createSale: (saleData) => {
-        const localId = generateLocalId();
         const now = new Date().toISOString();
         const items = saleData.items || [];
         const subtotal = items.reduce(
@@ -556,8 +533,7 @@ export function AppStateProvider({ children }) {
           0,
         );
 
-        const localSale = {
-          local_id: localId,
+        const newSale = {
           subtotal,
           discount_type: saleData.discount?.type || null,
           discount_value: saleData.discount?.value || null,
@@ -568,22 +544,26 @@ export function AppStateProvider({ children }) {
           items,
         };
 
+        let saleId;
         try {
-          salesRepo.insert(localSale);
+          saleId = salesRepo.insert(newSale);
         } catch (error) {
           console.warn("Failed to record sale:", error.message);
           return { success: false, message: "Failed to record sale" };
         }
 
+        const stockUpdates = [];
         for (const item of items) {
-          const invItem = inventoryRepo.getAll().find((i) => i.id === item.itemId);
+          const invItem = inventoryRepo.getById(item.itemId);
           if (invItem) {
-            inventoryRepo.updateStock(item.itemId, Math.max(0, invItem.stock - item.quantity));
+            const newStock = Math.max(0, invItem.stock - item.quantity);
+            inventoryRepo.updateStock(item.itemId, newStock);
+            stockUpdates.push({ itemId: item.itemId, newStock });
           }
         }
 
         const stateSale = {
-          localId,
+          id: saleId,
           subtotal,
           discountType: saleData.discount?.type,
           discountValue: saleData.discount?.value,
@@ -593,7 +573,7 @@ export function AppStateProvider({ children }) {
           timestamp: saleData.timestamp || now,
           items,
         };
-        dispatch({ type: "ADD_SALE", payload: stateSale });
+        dispatch({ type: "ADD_SALE", payload: { sale: stateSale, stockUpdates } });
 
         return { success: true, data: stateSale };
       },
