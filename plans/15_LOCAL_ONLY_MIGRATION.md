@@ -60,3 +60,24 @@ No new framework needed — Medusa's own modules (Product, ProductVariant, Inven
 2. Remove backend/auth/sync (#1) — biggest structural change, touches `AppContext.js` most.
 3. Write `plans/DATA_MODEL.md` (#3) — cheap, independent, good to do once #1 settles the final local schema.
 4. Extract styles (#2) — mechanical batch pass last, once file set is stable.
+
+---
+
+## Status (2026-08-19): #1 done, verified, and code-reviewed
+
+- `backend/` archived to `archive/backend/`, untracked, `.gitignore`d.
+- Local-only migration complete: deleted `AuthContext`, `ConnectivityContext`/`connectivityService`, `ConnectivityBanner`, `syncEngine`, `config/api.js`, `syncQueueRepo`, `LoginScreen`/`SignUpScreen`/`AuthStack`. `AppContext.js` rewritten — every action is now a plain SQLite read/write + dispatch, no `token` params, no `fetch`. Added a proper `restocks` table + `restockRepo.js` (previously restock cost was read out of `sync_queue` payloads — a hack that would've broken once that table was removed).
+- Verified by actually bundling the app with Metro (not just reading the diff) — 0 import/reference errors, both right after the migration and again after the follow-up fixes below.
+- Follow-up code-quality pass after a self-review against the CLAUDE.md "best practices" instruction:
+  - **Consistent error contract**: `load*` and `delete*` actions in `AppContext.js` now all return `{success, message}` like the `add*`/`update*` actions already did, instead of some silently swallowing errors via `console.warn` only.
+  - **Dropped misleading `await`/`async`**: every context action is synchronous now (SQLite, no network) — removed `await`/`async` at call sites across all screens so the code doesn't read as async when it isn't.
+  - Noted but not changed: `RefreshControl`'s `refreshing` spinner may no longer visibly flash on pull-to-refresh, since `setRefreshing(true)` and `setRefreshing(false)` now happen in the same synchronous tick (React batches them) — a side effect of everything becoming instant/local, not a bug introduced by the await cleanup. Not fixed since it's a UX call, not something explicitly asked for.
+  - Fixed 2026-08-19: `src/data/mockData.js` (misleading name, ~70 lines of dead mock arrays never imported anywhere) cleaned up — the three constants actually in use (`CATEGORIES`, `EVENT_STATUSES`, `EXPENSE_CATEGORIES`) moved to `src/constants/categories.js`, dead arrays deleted, `src/data/` removed, all 5 import sites updated. Verified via a fresh Metro bundle after the change.
+  - Bigger, deliberately deferred: `AppContext.js` is still a single ~500-line "god" provider covering inventory/sales/events/dashboard. Splitting it is a real architectural change, not a mechanical fix — tracked as an open question in `DESIGN.md` rather than done inline.
+- See root `DESIGN.md` for the design principles this project is meant to follow going forward.
+
+### Session close-out (2026-08-19)
+
+Stopping here for the day. State: app is local-only, bundles clean, `plans/14_POS_FIXES.md` (#1-#5) and this migration are both done, `mockData.js` cleanup done, `DESIGN.md` started. Not started yet: the two "open questions" in `DESIGN.md` (splitting `AppContext.js`, tests/linting) — pick up there next, plus continuing the `DESIGN.md` conversation the user said we'd revisit.
+
+Also, next plan on the line - Adding simple what Name should we call you, some simple onboarding animation, then do tutorial plan maybe for new user, maybe also need to think of some features getting cut to make sure the pos system stay truth to its use case

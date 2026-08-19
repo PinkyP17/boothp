@@ -2,7 +2,7 @@
 
 A mobile app for artists to manage their booth business at conventions. Track inventory, process sales, manage events, and monitor finances all in one place.
 
-Built with **React Native + Expo (SDK 54)** on the frontend and **Spring Boot 4 (Java 17)** on the backend.
+Built with **React Native + Expo (SDK 54)**. Local-only — all data lives in an on-device SQLite database, no backend or account required.
 
 ## Features
 
@@ -11,7 +11,6 @@ Built with **React Native + Expo (SDK 54)** on the frontend and **Spring Boot 4 
 - **Point of Sale** - Process sales at conventions and automatically update inventory
 - **Events** - Manage conventions/events, track event-specific expenses and revenue
 - **Finance** - Detailed breakdowns with charts, filters, and transaction history
-- **Auth** - User login and sign-up
 
 ## Getting Started
 
@@ -19,9 +18,8 @@ Built with **React Native + Expo (SDK 54)** on the frontend and **Spring Boot 4 
 
 - [Node.js](https://nodejs.org/) (LTS recommended)
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
-- Java 17+ (for the backend)
 
-### Frontend
+### Run it
 
 ```bash
 # Install dependencies
@@ -33,18 +31,6 @@ npx expo start
 
 Press `a` for Android, `i` for iOS, or `w` for web.
 
-### Backend
-
-```bash
-cd backend
-
-# Unix/macOS
-./mvnw spring-boot:run
-
-# Windows
-mvnw.cmd spring-boot:run
-```
-
 ## Project Structure
 
 ```
@@ -52,27 +38,22 @@ mvnw.cmd spring-boot:run
 │   ├── screens/          # Top-level screen components
 │   ├── components/       # Reusable UI (pos/, event/, inventory/, finance/)
 │   ├── navigation/       # Navigator definitions (tabs, stacks)
-│   ├── context/          # Global state (AppContext, AuthContext)
-│   ├── constants/        # Theme tokens (colors, sizes, shadows)
-│   └── data/             # Mock data and category constants
-├── backend/              # Spring Boot API (Java 17, Maven)
+│   ├── context/          # Global state (AppContext, ThemeContext)
+│   ├── services/         # SQLite database + repositories
+│   └── constants/        # Theme tokens and shared enums (categories)
+├── archive/backend/      # Old Spring Boot API, kept for reference only, not run
 ├── assets/               # App icons and splash screen
 └── plans/                # Design and planning documents
 ```
 
 ## Tech Stack
 
-**Frontend**
 - React Native 0.81 (New Architecture enabled)
 - Expo SDK 54
 - React Navigation (bottom tabs + native stacks)
+- expo-sqlite for local persistence
 - react-native-chart-kit / react-native-svg for charts
 - expo-image-picker for item photos
-
-**Backend**
-- Spring Boot 4.0
-- Java 17
-- Maven
 
 ## License
 

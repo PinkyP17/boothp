@@ -4,37 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Role
 
-You are a software engineer working on this codebase. Any code changes must be done with best practices in mind: sound OOP/component design, code maintainability, and readability. Prefer clear structure and separation of concerns over quick hacks, even under time pressure.
+You are a software engineer working on this codebase. Any code changes must be done with best practices in mind: sound OOP/component design, code maintainability, and readability. Prefer clear structure and separation of concerns over quick hacks, even under time pressure. See `DESIGN.md` for the design principles and layering rules this project follows — read it alongside this file, not instead of it.
 
 ## Commands
 
 ```bash
 npx expo start          # Start dev server (press a for Android, i for iOS, w for web)
-npx expo start -c       # Start with cleared cache (needed after .env changes)
-
-cd backend && ./mvnw spring-boot:run   # Run backend locally (needs local Postgres)
-cd backend && ./mvnw package -DskipTests   # Build backend jar
+npx expo start -c       # Start with cleared cache
 ```
 
 No test runner or linter is configured.
 
-## Deployment
-
-- **API**: https://boothp.onrender.com (Render free tier, Docker, root dir `backend`; sleeps after ~15 idle min)
-- **DB**: Supabase Postgres via the session pooler (port 5432 — direct connection is IPv6-only and unreachable from Render)
-- Backend secrets come from Render env vars (`DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `JWT_SECRET`); `application.properties` holds local-dev fallbacks only
-- The app reads `EXPO_PUBLIC_API_URL` from `.env` (gitignored), falling back to a LAN IP in `src/config/api.js` for local dev
-- See `plans/PROJECT_STATUS.md` for current status and remaining beta work
-
 ## Architecture
 
-This is a React Native + Expo (SDK 54) app for managing an artist booth business at conventions, backed by a Spring Boot 4 / Java 17 API in `backend/` with Postgres. The app uses the New Architecture (`newArchEnabled: true`). All frontend source is plain JavaScript (no TypeScript).
+This is a **local-only** React Native + Expo (SDK 54) app for managing an artist booth business at conventions. There is no backend, no auth, and no network sync — everything lives in a local SQLite database on-device. The app uses the New Architecture (`newArchEnabled: true`). All frontend source is plain JavaScript (no TypeScript).
+
+A previous version of this app had a Spring Boot backend, JWT auth, and an offline-sync queue. That was removed in `plans/15_LOCAL_ONLY_MIGRATION.md` (2026-08-19) in favor of single-device, single-user local storage. The old backend is kept for reference only, untracked and gitignored, at `archive/backend/` — it is not part of the running app and should not be treated as live architecture.
 
 ### State Management
 
-App state lives in a `useReducer` in `src/context/AppContext.js`, exposed via `AppStateProvider` and the `useAppState()` hook. Additional contexts: `AuthContext` (JWT auth, token in expo-secure-store), `ConnectivityContext` (online/offline detection), `ThemeContext` (dark mode).
+App state lives in a `useReducer` in `src/context/AppContext.js`, exposed via `AppStateProvider` and the `useAppState()` hook. `ThemeContext` is the only other context (dark mode).
 
-Data is **local-first**: everything is persisted in SQLite (`src/services/database.js`, repositories in `src/services/repositories/`), writes work offline via a sync queue, and `src/services/syncEngine.js` pushes queued changes (create/update/delete) to the backend on reconnect and on app foreground. When online, data also loads from the API (`src/config/api.js` for the base URL). The dashboard is fetched from the API online and computed locally from SQLite offline.
+Data is local-first and local-*only*: everything is persisted directly in SQLite (`src/services/database.js`, repositories in `src/services/repositories/`). Every context action follows the same shape — read/write SQLite synchronously (via `expo-sqlite`'s sync API), then dispatch to update in-memory state. Actions are synchronous, not async — there's no network in the loop, so don't reintroduce `await`/`async` at call sites. See `DESIGN.md`'s "Action contract" section for the full rule set (return shape, error handling).
 
 ### Navigation
 
@@ -44,7 +35,7 @@ Bottom tab navigator (`TabNavigator.js`) with five tabs: Home, Inventory, POS, E
 - **MoreStack**: MoreMenu -> Finance, Settings, About (native stack)
 - Inventory, POS, and Events are standalone screens (no nested stack)
 
-Finance screen is reachable from both HomeStack and MoreStack.
+Finance screen is reachable from both HomeStack and MoreStack. There is no login/auth flow — the app opens straight to `TabNavigator`.
 
 ### Theming
 
@@ -54,18 +45,20 @@ All colors, sizes, and shadows are centralized in `src/constants/theme.js` (`COL
 
 - **Income**: POS sales (`ADD_SALE`) — records items sold and decrements inventory stock
 - **Expenses**: Event expenses (`ADD_EVENT_EXPENSE`) and inventory restocking costs
-- **Dashboard**: Aggregates sales and event expenses to show financial summaries
+- **Dashboard**: Computed locally from SQLite (`computeDashboard()` in `AppContext.js`) — aggregates sales, event expenses, and restocks
 - **Finance screen**: Detailed breakdown with charts, filters, and transaction history
 
 ### File Organization
 
-- `src/screens/` — top-level screen components (incl. Login/SignUp, EventDetail)
+- `src/screens/` — top-level screen components (Dashboard, Inventory, POS, Events, EventDetail, Finance, More, Settings, About)
 - `src/components/` — reusable UI, organized by feature (`pos/`, `event/`, `inventory/`, `finance/`)
 - `src/navigation/` — navigator definitions
-- `src/context/` — providers: AppContext, AuthContext, ConnectivityContext, ThemeContext
-- `src/services/` — SQLite database, repositories, sync engine, connectivity, images
-- `src/config/` — API base URL
-- `src/constants/` — theme tokens
-- `src/data/` — category constants (mock data no longer the data source)
+- `src/context/` — providers: `AppContext` (app state + all data actions), `ThemeContext`
+- `src/services/` — SQLite database (`database.js`) and repositories (`repositories/`), plus `imageService.js`
+- `src/constants/` — theme tokens (`theme.js`) and shared enums (`categories.js`)
 - `plans/` — design and planning documents for each feature area
-- `backend/` — Spring Boot API (controllers, services, entities, JWT config); its own `plans/` docs
+- `archive/backend/` — old Spring Boot API, kept for reference, not part of the running app
+
+## Known issues / in-progress cleanup
+
+Tracked in `DESIGN.md`'s "Open questions" and the review notes below `plans/15_LOCAL_ONLY_MIGRATION.md`. Notably: `database.js` and the repositories still carry a vestigial `local_id` dual-key scheme left over from the old sync-with-server design, which is now dead weight now that there's no server to reconcile against — don't extend that pattern in new code.
