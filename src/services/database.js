@@ -75,6 +75,12 @@ export function initDatabase() {
     cost REAL NOT NULL,
     created_at TEXT NOT NULL
   )`);
+
+  db.runSync(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+  )`);
 }
 
 export function getDb() {

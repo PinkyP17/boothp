@@ -3,6 +3,7 @@ import {
   Text,
   View,
   Modal,
+  Pressable,
   TouchableOpacity,
   ScrollView,
 } from "react-native";
@@ -60,8 +61,9 @@ export default function EventDetailModal({
   );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header */}

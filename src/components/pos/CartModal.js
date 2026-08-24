@@ -4,6 +4,7 @@ import {
   Text,
   View,
   Modal,
+  Pressable,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -80,11 +81,12 @@ export default function CartModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={[styles.title, { color: C.textPrimary }]}>Cart</Text>

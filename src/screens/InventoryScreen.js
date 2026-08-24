@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
-import { CATEGORIES } from "../constants/categories";
 import { useAppState } from "../context/AppContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
@@ -20,15 +20,26 @@ import SearchBar from "../components/SearchBar";
 import CategoryFilter from "../components/CategoryFilter";
 import InventoryItemCard from "../components/inventory/InventoryItemCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
+import AddCategoryModal from "../components/inventory/AddCategoryModal";
 
 export default function InventoryScreen() {
-  const { state, loadInventory, addInventoryItem, updateInventoryItem, restockItem } = useAppState();
+  const {
+    state,
+    loadInventory,
+    addInventoryItem,
+    updateInventoryItem,
+    restockItem,
+    loadCategories,
+    addCategory,
+    deleteCategory,
+  } = useAppState();
   const { colors: C } = useTheme();
   const { showToast } = useToast();
   const items = state.inventory;
 
   useEffect(() => {
     loadInventory();
+    loadCategories();
   }, []);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -37,6 +48,38 @@ export default function InventoryScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState("add");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
+
+  const categoryOptions = ["All", ...state.categories];
+
+  useEffect(() => {
+    if (!categoryOptions.includes(selectedCategory)) {
+      setSelectedCategory("All");
+    }
+  }, [state.categories]);
+
+  const handleAddCategory = (name) => {
+    const result = addCategory(name);
+    if (!result.success) {
+      showToast(result.message || "Failed to add category", "error");
+    }
+  };
+
+  const handleLongPressCategory = (name) => {
+    Alert.alert("Delete Category", `Delete "${name}"? This can't be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          const result = deleteCategory(name);
+          if (!result.success) {
+            showToast(result.message || "Failed to delete category", "error");
+          }
+        },
+      },
+    ]);
+  };
 
   const filteredItems = items.filter((item) => {
     const matchesCategory =
@@ -47,11 +90,13 @@ export default function InventoryScreen() {
     return matchesCategory && matchesSearch;
   });
 
-  const totalItems = items.reduce((sum, item) => sum + item.stock, 0);
-  const inventoryValue = items.reduce(
+  const totalStock = filteredItems.reduce((sum, item) => sum + item.stock, 0);
+  const inventoryValue = filteredItems.reduce(
     (sum, item) => sum + item.stock * item.productionCost,
     0,
   );
+  const stockCardTitle =
+    selectedCategory === "All" ? "Total Stock" : `Total ${selectedCategory}`;
 
   const openAddModal = () => {
     setSelectedItem(null);
@@ -113,8 +158,8 @@ export default function InventoryScreen() {
 
         <View style={styles.cardsRow}>
           <SummaryCard
-            title="Total Stock"
-            amount={totalItems}
+            title={stockCardTitle}
+            amount={totalStock}
             color={C.primary}
             format="number"
           />
@@ -131,9 +176,11 @@ export default function InventoryScreen() {
           placeholder="Search items..."
         />
         <CategoryFilter
-          categories={CATEGORIES}
+          categories={categoryOptions}
           selected={selectedCategory}
           onSelect={setSelectedCategory}
+          onLongPressCategory={handleLongPressCategory}
+          onAddPress={() => setAddCategoryModalVisible(true)}
         />
 
         {state.isLoading && items.length === 0 ? (
@@ -177,6 +224,13 @@ export default function InventoryScreen() {
         onSave={handleSave}
         item={selectedItem}
         mode={modalMode}
+        categories={state.categories}
+      />
+
+      <AddCategoryModal
+        visible={addCategoryModalVisible}
+        onClose={() => setAddCategoryModalVisible(false)}
+        onSave={handleAddCategory}
       />
     </SafeAreaView>
   );

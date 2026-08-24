@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { SIZES } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 import { useAppState } from "../context/AppContext";
@@ -16,9 +17,11 @@ export default function FinanceScreen({ route }) {
   const [filter, setFilter] = useState(initialFilter);
   const dashboard = state.dashboard;
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, []),
+  );
 
   const income = dashboard?.income ?? 0;
   const expenses = dashboard?.totalExpenses ?? 0;

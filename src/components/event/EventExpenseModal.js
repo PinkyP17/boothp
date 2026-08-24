@@ -4,6 +4,7 @@ import {
   Text,
   View,
   Modal,
+  Pressable,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -32,11 +33,12 @@ export default function EventExpenseModal({ visible, onClose, onSave }) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.modal, { backgroundColor: C.card }]}>
           <Text style={[styles.title, { color: C.textPrimary }]}>Add Expense</Text>
 

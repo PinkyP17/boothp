@@ -5,6 +5,7 @@ import * as salesRepo from "../services/repositories/salesRepo";
 import * as eventsRepo from "../services/repositories/eventsRepo";
 import * as itemImagesRepo from "../services/repositories/itemImagesRepo";
 import * as restockRepo from "../services/repositories/restockRepo";
+import * as categoryRepo from "../services/repositories/categoryRepo";
 
 const AppContext = createContext();
 
@@ -12,6 +13,7 @@ const initialState = {
   inventory: [],
   sales: [],
   events: [],
+  categories: [],
   dashboard: null,
   isLoading: false,
 };
@@ -114,6 +116,18 @@ function appReducer(state, action) {
 
     case "SET_LOADING":
       return { ...state, isLoading: action.payload };
+
+    case "SET_CATEGORIES":
+      return { ...state, categories: action.payload };
+
+    case "ADD_CATEGORY":
+      return { ...state, categories: [...state.categories, action.payload] };
+
+    case "DELETE_CATEGORY":
+      return {
+        ...state,
+        categories: state.categories.filter((c) => c !== action.payload),
+      };
 
     default:
       return state;
@@ -306,6 +320,17 @@ export function AppStateProvider({ children }) {
 
         if (imageList.length > 0) {
           itemImagesRepo.replaceImages(itemId, imageList);
+        }
+
+        // Opening stock is a real production expense, same as a later restock —
+        // log it so Finance's totals aren't missing the cost of stock that was
+        // never explicitly "restocked" (see plans/16_INVENTORY_POS_FIXES_AND_TESTING.md item 2).
+        if (data.stock > 0) {
+          try {
+            restockRepo.insert(itemId, data.stock, data.stock * data.productionCost);
+          } catch (error) {
+            console.warn("Failed to log initial stock cost:", error.message);
+          }
         }
 
         const stateItem = mapInventoryItem({ ...newItem, id: itemId });
@@ -581,6 +606,52 @@ export function AppStateProvider({ children }) {
     [],
   );
 
+  const categoryActions = useMemo(
+    () => ({
+      loadCategories: () => {
+        try {
+          const rows = categoryRepo.getAll();
+          dispatch({ type: "SET_CATEGORIES", payload: rows.map((r) => r.name) });
+          return { success: true };
+        } catch (e) {
+          console.warn("Loading categories failed:", e.message);
+          return { success: false, message: "Failed to load categories" };
+        }
+      },
+
+      addCategory: (name) => {
+        const trimmed = (name || "").trim();
+        if (!trimmed) {
+          return { success: false, message: "Category name can't be empty" };
+        }
+        try {
+          categoryRepo.insert(trimmed);
+        } catch (error) {
+          console.warn("Failed to add category:", error.message);
+          return { success: false, message: "That category already exists" };
+        }
+        dispatch({ type: "ADD_CATEGORY", payload: trimmed });
+        return { success: true };
+      },
+
+      deleteCategory: (name) => {
+        const inUse = inventoryRepo.getAll().some((item) => item.category === name);
+        if (inUse) {
+          return { success: false, message: "Move or delete items in this category first" };
+        }
+        try {
+          categoryRepo.deleteByName(name);
+        } catch (error) {
+          console.warn("Failed to delete category:", error.message);
+          return { success: false, message: "Failed to delete category" };
+        }
+        dispatch({ type: "DELETE_CATEGORY", payload: name });
+        return { success: true };
+      },
+    }),
+    [],
+  );
+
   const dashboardActions = useMemo(
     () => ({
       loadDashboard: () => {
@@ -605,6 +676,7 @@ export function AppStateProvider({ children }) {
         ...inventoryActions,
         ...eventActions,
         ...salesActions,
+        ...categoryActions,
         ...dashboardActions,
       }}
     >

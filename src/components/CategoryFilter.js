@@ -1,8 +1,15 @@
 import { StyleSheet, Text, ScrollView, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
 import { useTheme } from "../context/ThemeContext";
 
-export default function CategoryFilter({ categories, selected, onSelect }) {
+export default function CategoryFilter({
+  categories,
+  selected,
+  onSelect,
+  onLongPressCategory,
+  onAddPress,
+}) {
   const { colors: C } = useTheme();
   return (
     <ScrollView
@@ -21,6 +28,11 @@ export default function CategoryFilter({ categories, selected, onSelect }) {
               { backgroundColor: isSelected ? C.primary : C.card },
             ]}
             onPress={() => onSelect(category)}
+            onLongPress={
+              onLongPressCategory && category !== "All"
+                ? () => onLongPressCategory(category)
+                : undefined
+            }
           >
             <Text
               style={[
@@ -33,6 +45,14 @@ export default function CategoryFilter({ categories, selected, onSelect }) {
           </TouchableOpacity>
         );
       })}
+      {onAddPress && (
+        <TouchableOpacity
+          style={[styles.pill, styles.addPill, { borderColor: C.primary }]}
+          onPress={onAddPress}
+        >
+          <Ionicons name="add" size={16} color={C.primary} />
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -52,5 +72,11 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: SIZES.fontCaption,
     fontWeight: "500",
+  },
+  addPill: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

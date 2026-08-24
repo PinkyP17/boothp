@@ -10,6 +10,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -73,13 +74,10 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
   const title = mode === "add" ? "Add Event" : "Edit Event";
   const saveLabel = mode === "add" ? "Add" : "Save";
 
-  const handleDateChange = (e, selectedDate) => {
+  const handleDateChange = (selectedDate) => {
+    setForm({ ...form, [showDatePicker]: selectedDate });
     if (Platform.OS === "android") {
       setShowDatePicker(null);
-    }
-    if (e.type === "dismissed") return;
-    if (selectedDate) {
-      setForm({ ...form, [showDatePicker]: selectedDate });
     }
   };
 
@@ -104,11 +102,12 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={[styles.title, { color: C.textPrimary }]}>{title}</Text>
@@ -169,7 +168,8 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
                 value={form[showDatePicker] || new Date()}
                 mode="date"
                 display={Platform.OS === "ios" ? "inline" : "default"}
-                onChange={handleDateChange}
+                onValueChange={handleDateChange}
+                onDismiss={() => setShowDatePicker(null)}
                 minimumDate={
                   showDatePicker === "endDate" && form.date
                     ? form.date
@@ -250,8 +250,17 @@ export default function EventModal({ visible, onClose, onSave, event, mode }) {
       </KeyboardAvoidingView>
 
       {/* Currency search modal */}
-      <Modal visible={currencyModalVisible} animationType="fade" transparent>
+      <Modal
+        visible={currencyModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setCurrencyModalVisible(false)}
+      >
         <View style={styles.currencyOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setCurrencyModalVisible(false)}
+          />
           <View style={[styles.currencyModal, { backgroundColor: C.card }]}>
             <View style={styles.currencyModalHeader}>
               <Text style={[styles.currencyModalTitle, { color: C.textPrimary }]}>Select Currency</Text>

@@ -4,6 +4,7 @@ import {
   Text,
   View,
   Modal,
+  Pressable,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -16,15 +17,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../../constants/theme";
 import { useTheme } from "../../context/ThemeContext";
-import { CATEGORIES } from "../../constants/categories";
 import { pickImage, saveImageLocally, deleteImage } from "../../services/imageService";
 
-const editableCategories = CATEGORIES.filter((c) => c !== "All");
 const MAX_IMAGES = 5;
 
 const emptyForm = {
   name: "",
-  category: "Prints",
+  category: "",
   productionCost: "",
   sellingPrice: "",
   stock: "",
@@ -37,6 +36,7 @@ export default function InventoryItemModal({
   onSave,
   item,
   mode,
+  categories,
 }) {
   const { colors: C } = useTheme();
   const [form, setForm] = useState(emptyForm);
@@ -45,7 +45,7 @@ export default function InventoryItemModal({
 
   useEffect(() => {
     if (mode === "add") {
-      setForm(emptyForm);
+      setForm({ ...emptyForm, category: categories[0] || "" });
     } else if (mode === "edit" && item) {
       const existingImages = item.images && item.images.length > 0
         ? [...item.images]
@@ -64,7 +64,7 @@ export default function InventoryItemModal({
       setRestockQty("");
       setRestockCost("");
     }
-  }, [visible, mode, item]);
+  }, [visible, mode, item, categories]);
 
   const title =
     mode === "add"
@@ -166,11 +166,12 @@ export default function InventoryItemModal({
   );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
         <View style={[styles.modal, { backgroundColor: C.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={[styles.title, { color: C.textPrimary }]}>{title}</Text>
@@ -245,29 +246,35 @@ export default function InventoryItemModal({
                 />
 
                 <Text style={[styles.label, { color: C.textSecondary }]}>Category</Text>
-                <View style={styles.categoryRow}>
-                  {editableCategories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[
-                        styles.categoryPill,
-                        { backgroundColor: C.background },
-                        form.category === cat && { backgroundColor: C.primary },
-                      ]}
-                      onPress={() => setForm({ ...form, category: cat })}
-                    >
-                      <Text
+                {categories.length === 0 ? (
+                  <Text style={[styles.categoryHint, { color: C.textSecondary }]}>
+                    No categories yet — add one with the "+" on the Inventory screen's filter row first.
+                  </Text>
+                ) : (
+                  <View style={styles.categoryRow}>
+                    {categories.map((cat) => (
+                      <TouchableOpacity
+                        key={cat}
                         style={[
-                          styles.categoryPillText,
-                          { color: C.textSecondary },
-                          form.category === cat && { color: "#FFFFFF" },
+                          styles.categoryPill,
+                          { backgroundColor: C.background },
+                          form.category === cat && { backgroundColor: C.primary },
                         ]}
+                        onPress={() => setForm({ ...form, category: cat })}
                       >
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <Text
+                          style={[
+                            styles.categoryPillText,
+                            { color: C.textSecondary },
+                            form.category === cat && { color: "#FFFFFF" },
+                          ]}
+                        >
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
                 <Text style={[styles.label, { color: C.textSecondary }]}>Production Cost</Text>
                 <TextInput
@@ -366,6 +373,10 @@ const styles = StyleSheet.create({
   categoryPillText: {
     fontSize: SIZES.fontCaption,
     fontWeight: "500",
+  },
+  categoryHint: {
+    fontSize: SIZES.fontCaption,
+    lineHeight: 18,
   },
   // Multi-image styles
   imageSection: {

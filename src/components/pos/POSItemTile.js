@@ -17,69 +17,76 @@ export default function POSItemTile({ item, onPress, inCartQty }) {
   const isOutOfStock = item.stock === 0;
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.tile,
-        {
-          backgroundColor: C.card,
-          borderColor: C.posButton + "30",
-        },
-        isOutOfStock && styles.disabled,
-      ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-      disabled={isOutOfStock}
-    >
-      {/* Cart quantity badge */}
+    <View style={styles.wrapper}>
+      <TouchableOpacity
+        style={[
+          styles.tile,
+          {
+            backgroundColor: C.card,
+            borderColor: C.posButton + "30",
+          },
+          isOutOfStock && styles.disabled,
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+        disabled={isOutOfStock}
+      >
+        {/* Stock badge */}
+        <View
+          style={[
+            styles.stockBadge,
+            { backgroundColor: C.primary + "15" },
+            isOutOfStock && { backgroundColor: C.expense + "15" },
+          ]}
+        >
+          <Text
+            style={[
+              styles.stockText,
+              { color: C.primary },
+              isOutOfStock && { color: C.expense },
+            ]}
+          >
+            {isOutOfStock ? "Out" : item.stock}
+          </Text>
+        </View>
+
+        {item.imageUri && (
+          <Image
+            source={{ uri: item.imageUri }}
+            style={styles.tileImage}
+            resizeMode="cover"
+          />
+        )}
+
+        <Text style={[styles.name, { color: C.textPrimary }]} numberOfLines={2}>
+          {item.name}
+        </Text>
+        <Text style={[styles.price, { color: C.posButton }]}>
+          ${item.sellingPrice.toFixed(2)}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Cart quantity badge — sits on the unclipped wrapper so it can
+          overlap the tile's corner instead of being cut off by the
+          tile's own overflow:hidden (used for image corner-clipping). */}
       {inCartQty > 0 && (
         <View style={[styles.qtyBadge, { backgroundColor: C.primary }]}>
           <Text style={styles.qtyBadgeText}>{inCartQty}</Text>
         </View>
       )}
-
-      {/* Stock badge */}
-      <View
-        style={[
-          styles.stockBadge,
-          { backgroundColor: C.primary + "15" },
-          isOutOfStock && { backgroundColor: C.expense + "15" },
-        ]}
-      >
-        <Text
-          style={[
-            styles.stockText,
-            { color: C.primary },
-            isOutOfStock && { color: C.expense },
-          ]}
-        >
-          {isOutOfStock ? "Out" : item.stock}
-        </Text>
-      </View>
-
-      {item.imageUri && (
-        <Image
-          source={{ uri: item.imageUri }}
-          style={styles.tileImage}
-          resizeMode="cover"
-        />
-      )}
-
-      <Text style={[styles.name, { color: C.textPrimary }]} numberOfLines={2}>
-        {item.name}
-      </Text>
-      <Text style={[styles.price, { color: C.posButton }]}>
-        ${item.sellingPrice.toFixed(2)}
-      </Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  tile: {
+  wrapper: {
     width: TILE_WIDTH,
+    marginBottom: 12,
+  },
+  tile: {
+    width: "100%",
     borderRadius: SIZES.cardRadius,
     padding: 14,
-    marginBottom: 12,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 140,
@@ -118,6 +125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
+    zIndex: 1,
   },
   stockText: {
     fontSize: 10,

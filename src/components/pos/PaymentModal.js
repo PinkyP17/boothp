@@ -4,6 +4,7 @@ import {
   Text,
   View,
   Modal,
+  Pressable,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
@@ -34,8 +35,17 @@ export default function PaymentModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={submitting ? undefined : onClose}
+    >
       <View style={styles.overlay}>
+        <Pressable
+          style={StyleSheet.absoluteFillObject}
+          onPress={submitting ? undefined : onClose}
+        />
         <View style={[styles.modal, { backgroundColor: C.card }]}>
           <Text style={[styles.title, { color: C.textPrimary }]}>Payment</Text>
 

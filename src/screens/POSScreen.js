@@ -8,9 +8,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { SIZES } from "../constants/theme";
-import { CATEGORIES } from "../constants/categories";
 import { useAppState } from "../context/AppContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../components/Toast";
@@ -22,9 +20,10 @@ import PaymentModal from "../components/pos/PaymentModal";
 
 export default function POSScreen() {
   const { colors: C } = useTheme();
-  const { state, createSale, loadInventory } = useAppState();
+  const { state, createSale, loadInventory, loadCategories } = useAppState();
   const { showToast } = useToast();
   const inventoryItems = state.inventory;
+  const categoryOptions = ["All", ...state.categories];
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -32,8 +31,11 @@ export default function POSScreen() {
   const [discount, setDiscount] = useState({ type: "percent", value: 0 });
   const [cartModalVisible, setCartModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   const filteredItems = inventoryItems.filter((item) => {
     return selectedCategory === "All" || item.category === selectedCategory;
@@ -140,7 +142,7 @@ export default function POSScreen() {
         setDiscount({ type: "percent", value: 0 });
         setPaymentModalVisible(false);
         setCartModalVisible(false);
-        setShowSuccess(true);
+        showToast("Sale complete!", "success");
       } else if (result) {
         showToast(result.message || "Failed to complete sale", "error");
       }
@@ -150,13 +152,6 @@ export default function POSScreen() {
       setSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (showSuccess) {
-      const timer = setTimeout(() => setShowSuccess(false), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccess]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.background }]}>
@@ -171,7 +166,7 @@ export default function POSScreen() {
 
       <View style={styles.filterContainer}>
         <CategoryFilter
-          categories={CATEGORIES}
+          categories={categoryOptions}
           selected={selectedCategory}
           onSelect={setSelectedCategory}
         />
@@ -237,15 +232,6 @@ export default function POSScreen() {
         onClose={() => setPaymentModalVisible(false)}
         onConfirm={confirmSale}
       />
-
-      {showSuccess && (
-        <View style={styles.successOverlay}>
-          <View style={[styles.successBox, { backgroundColor: C.card }]}>
-            <Ionicons name="checkmark-circle" size={48} color={C.income} />
-            <Text style={[styles.successText, { color: C.textPrimary }]}>Sale Complete!</Text>
-          </View>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -280,25 +266,13 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     paddingHorizontal: SIZES.padding,
+    // Leaves room for the in-cart quantity badge, which pokes above the tile's
+    // own top edge (see POSItemTile.js) — without this the ScrollView's
+    // viewport clips it for the first row of tiles.
+    paddingTop: 10,
   },
   bottomSpacer: {
     height: 100,
     width: "100%",
-  },
-  successOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  successBox: {
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-    gap: 12,
-  },
-  successText: {
-    fontSize: SIZES.fontSubtitle,
-    fontWeight: "700",
   },
 });
